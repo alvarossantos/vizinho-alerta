@@ -24,7 +24,7 @@ class AuthRepository(
         }
     }
 
-    suspend fun cadastrar(nome: String, email: String, pass: String, bairro: String): Result<FirebaseUser> {
+    suspend fun cadastrar(nome: String, email: String, pass: String, cidade: String, bairro: String): Result<FirebaseUser> {
         return try {
             val result = auth.createUserWithEmailAndPassword(email, pass).await()
             val user = result.user ?: return Result.failure(Exception("Falha ao criar usuário"))
@@ -33,6 +33,7 @@ class AuthRepository(
                 id = user.uid,
                 nome = nome,
                 email = email,
+                cidade = cidade,
                 bairro = bairro
             )
 

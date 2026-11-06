@@ -1,6 +1,6 @@
 # Vizinho Alerta
 
-App Android (Kotlin) de segurança comunitária para reportar ocorrências com foto, áudio e GPS, usando câmera, microfone, GPS e internet.
+App Android (Kotlin) de segurança comunitária para reportar ocorrências com foto, áudio, GPS e cidade, usando câmera, microfone, GPS e internet.
 
 ## Ideia do projeto
 Moradores registram situações suspeitas ou problemas urbanos (rua escura, vandalismo, briga, animal perigoso, iluminação danificada) com evidências multimídia. As ocorrências aparecem em mapa compartilhado em tempo real, permitindo que vizinhos vejam o que acontece na região e marquem como resolvido.
@@ -31,12 +31,13 @@ app/src/main/java/com/vizinhoalerta/
     └── AudioService.kt
 ```
 
-## Funcionalidades MVP
-- Cadastro/login
-- Mapa de ocorrências em tempo real
-- Nova ocorrência: foto + áudio + GPS + categoria
-- Feed de ocorrências próximas
-- Detalhes: foto, áudio, distância e status (aberto/resolvido)
+## Funcionalidades MVP (com cidade)
+- Cadastro/login com nome, email, cidade e bairro
+- Mapa de ocorrências em tempo real com marcadores
+- Nova ocorrência: foto + áudio + GPS + cidade + bairro customizado
+- Feed de ocorrências com info completa (cidade/bairro customizável)
+- Detalhes: foto, reprodução de áudio, mapa de localização, botão "Marcar como Resolvido"
+- Usuário pode relatar em cidades ou bairros diferentes dos cadastrados na conta
 
 ## Como rodar
 1. Abrir projeto no Android Studio

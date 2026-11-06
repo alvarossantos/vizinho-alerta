@@ -63,6 +63,7 @@ fun ReportarScreen(
 
     var tipoSelecionado by remember { mutableStateOf(tiposOcorrencia.first()) }
     var descricao by remember { mutableStateOf("") }
+    var cidade by remember { mutableStateOf("") }
     var bairro by remember { mutableStateOf("") }
 
     // Foto
@@ -83,11 +84,12 @@ fun ReportarScreen(
     var enviando by remember { mutableStateOf(false) }
     var mensagemErro by remember { mutableStateOf<String?>(null) }
 
-    // Pré-preenche o bairro a partir do usuário autenticado se disponível
+    // Pré-preenche cidade/bairro do usuário, mas o usuário pode alterar para qualquer cidade/bairro
     LaunchedEffect(Unit) {
         authRepository.currentUser?.uid?.let { uid ->
             val u = authRepository.getDadosUsuario(uid)
-            if (u != null && u.bairro.isNotBlank()) {
+            if (u != null) {
+                cidade = u.cidade
                 bairro = u.bairro
             }
         }
@@ -166,6 +168,14 @@ fun ReportarScreen(
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
                 maxLines = 5
+            )
+
+            OutlinedTextField(
+                value = cidade,
+                onValueChange = { cidade = it },
+                label = { Text("Cidade da ocorrência") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
             )
 
             OutlinedTextField(
@@ -440,6 +450,7 @@ fun ReportarScreen(
                             descricao = descricao,
                             lat = loc.latitude,
                             lng = loc.longitude,
+                            cidade = cidade,
                             bairro = bairro,
                             status = "aberto",
                             createdAt = System.currentTimeMillis()

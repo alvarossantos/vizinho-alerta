@@ -151,7 +151,7 @@ fun DetalhesScreen(
                                 )
                             }
 
-                            if (o.bairro.isNotBlank()) {
+                            if (o.cidade.isNotBlank() || o.bairro.isNotBlank()) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.padding(top = 4.dp)
@@ -164,7 +164,13 @@ fun DetalhesScreen(
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = o.bairro,
+                                        text = buildString {
+                                            if (o.bairro.isNotBlank()) append(o.bairro)
+                                            if (o.cidade.isNotBlank()) {
+                                                if (isNotEmpty()) append(" — ")
+                                                append(o.cidade)
+                                            }
+                                        },
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                 }

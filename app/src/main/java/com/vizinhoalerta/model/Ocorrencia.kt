@@ -10,6 +10,7 @@ data class Ocorrencia(
     val audioUrl: String = "",
     val lat: Double = 0.0,
     val lng: Double = 0.0,
+    val cidade: String = "",
     val bairro: String = "",
     val status: String = "aberto", // aberto | resolvido
     val createdAt: Long = System.currentTimeMillis()

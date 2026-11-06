@@ -1,6 +1,6 @@
 package com.vizinhoalerta.ui.mapa
 
-import androidx.compose.foundation.background
+// import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -113,7 +113,7 @@ fun MapaScreen(
                             Marker(
                                 state = MarkerState(position = pos),
                                 title = o.tipo,
-                                snippet = "${o.bairro} - ${if (o.status == "resolvido") "RESOLVIDO" else "ABERTO"}",
+                                snippet = "${o.bairro} — ${o.cidade} - ${if (o.status == "resolvido") "RESOLVIDO" else "ABERTO"}",
                                 icon = BitmapDescriptorFactory.defaultMarker(hue),
                                 onClick = {
                                     onOcorrenciaClick(o.id)
@@ -215,9 +215,12 @@ fun OcorrenciaCard(
                     )
                 }
 
-                if (ocorrencia.bairro.isNotBlank()) {
+                if (ocorrencia.cidade.isNotBlank() || ocorrencia.bairro.isNotBlank()) {
                     Text(
-                        text = "Bairro: ${ocorrencia.bairro}",
+                        text = buildString {
+                            if (ocorrencia.bairro.isNotBlank()) append("Bairro: ${ocorrencia.bairro}")
+                            if (ocorrencia.cidade.isNotBlank()) append(" — ${ocorrencia.cidade}")
+                        },
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }

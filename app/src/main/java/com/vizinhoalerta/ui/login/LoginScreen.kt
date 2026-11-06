@@ -33,6 +33,7 @@ fun LoginScreen(
     var email by remember { mutableStateOf("") }
     var senha by remember { mutableStateOf("") }
     var nome by remember { mutableStateOf("") }
+    var cidade by remember { mutableStateOf("") }
     var bairro by remember { mutableStateOf("") }
 
     var carregando by remember { mutableStateOf(false) }
@@ -96,6 +97,16 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     OutlinedTextField(
+                        value = cidade,
+                        onValueChange = { cidade = it },
+                        label = { Text("Sua Cidade") },
+                        leadingIcon = { Icon(Icons.Default.LocationCity, contentDescription = null) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
                         value = bairro,
                         onValueChange = { bairro = it },
                         label = { Text("Seu Bairro") },
@@ -148,15 +159,15 @@ fun LoginScreen(
                         mensagemErro = "Preencha e-mail e senha"
                         return@Button
                     }
-                    if (isCadastro && (nome.isBlank() || bairro.isBlank())) {
-                        mensagemErro = "Preencha nome e bairro"
+                    if (isCadastro && (nome.isBlank() || cidade.isBlank() || bairro.isBlank())) {
+                        mensagemErro = "Preencha nome, cidade e bairro"
                         return@Button
                     }
 
                     carregando = true
                     scope.launch {
                         val res = if (isCadastro) {
-                            authRepository.cadastrar(nome, email, senha, bairro)
+                            authRepository.cadastrar(nome, email, senha, cidade, bairro)
                         } else {
                             authRepository.login(email, senha)
                         }
