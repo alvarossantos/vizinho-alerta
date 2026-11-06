@@ -1,0 +1,16 @@
+# Android / Kotlin
+*.iml
+.gradle/
+.idea/
+.DS_Store
+local.properties
+*.apk
+*.aab
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+# Firebase
+google-services.json
+# OS
+Thumbs.db
