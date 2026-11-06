@@ -14,3 +14,5 @@ captures/
 google-services.json
 # OS
 Thumbs.db
+*.iml
+.idea/
