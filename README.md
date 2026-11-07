@@ -31,12 +31,16 @@ app/src/main/java/com/vizinhoalerta/
     └── AudioService.kt
 ```
 
-## Funcionalidades MVP (com cidade)
+## Funcionalidades MVP
 - Cadastro/login com nome, email, cidade e bairro
-- Mapa de ocorrências em tempo real com marcadores
+- **Mapa com localização do usuário em azul** (Blue Dot) — todos veem onde estão
+- Botão "Local Atual" → recente a câmera para a posição do usuário
+- Clique no mapa → menu de confirmação da escolha do local
+- Escolha local: clique no mapa no Reportar (confirmar) ou use GPS automático
 - Nova ocorrência: foto + áudio + GPS + cidade + bairro customizado
-- Feed de ocorrências com info completa (cidade/bairro customizável)
+- Feed de ocorrências em tempo real com marcadores coloridos
 - Detalhes: foto, reprodução de áudio, mapa de localização, botão "Marcar como Resolvido"
+- Ocorrências aparecem em mapa azul para todos (lado de baixo: verde = resolvido, vermelho = aberto)
 - Usuário pode relatar em cidades ou bairros diferentes dos cadastrados na conta
 
 ## Como rodar
