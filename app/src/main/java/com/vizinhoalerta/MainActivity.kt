@@ -110,7 +110,9 @@ fun VizinhoAlertaApp(
                     navController.navigate("login") {
                         popUpTo("mapa") { inclusive = true }
                     }
-                }
+                },
+                onConfirmLocation = { lat, lng -> },
+                onUserLocationReady = { lat, lng -> }
             )
         }
 

@@ -2,13 +2,13 @@ package com.vizinhoalerta.ui.reportar
 
 import android.content.Context
 import android.graphics.BitmapFactory
-import android.location.Location
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -28,6 +28,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.CircleMarker
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberCameraPositionState
+import com.vizinhoalerta.ui.mapa.DialogChooseLocation
+import com.vizinhoalerta.service.AudioService
+import com.vizinhoalerta.service.CameraService
+import com.vizinhoalerta.service.LocalizacaoService
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -39,7 +51,8 @@ import com.vizinhoalerta.data.OcorrenciaRepository
 import com.vizinhoalerta.model.Ocorrencia
 import com.vizinhoalerta.service.AudioService
 import com.vizinhoalerta.service.CameraService
-import com.vizinhoalerta.service.LocalizacaoService
+import com.vizinhoalerta.service.AudioService
+import com.vizinhoalerta.service.CameraService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
@@ -77,9 +90,10 @@ fun ReportarScreen(
     var tempoGravacao by remember { mutableStateOf(0) }
     var reproduzindoAudio by remember { mutableStateOf(false) }
 
-    // GPS
-    var localizacao by remember { mutableStateOf<Location?>(null) }
+    // Localização — seja por clique no mapa ou GPS
+    var escolheuLocal by remember { mutableStateOf<LatLng?>(null) }
     var obtendoGps by remember { mutableStateOf(false) }
+    var dialogConfirmando by remember { mutableStateOf(false) }
 
     var enviando by remember { mutableStateOf(false) }
     var mensagemErro by remember { mutableStateOf<String?>(null) }
@@ -375,47 +389,129 @@ fun ReportarScreen(
 
             HorizontalDivider()
 
-            // Localização GPS
+            // Escolher local no mapa ou GPS
             Text(
-                text = "Localização (GPS)",
+                text = "Localização",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedButton(
-                    onClick = {
-                        obtendoGps = true
-                        LocalizacaoService.obterLocalizacaoAtual(
-                            context = context,
-                            onSuccess = { loc ->
-                                localizacao = loc
-                                obtendoGps = false
-                            },
-                            onFailure = { ex ->
-                                mensagemErro = ex.localizedMessage ?: "Erro ao obter GPS"
-                                obtendoGps = false
-                            }
-                        )
+            val mapaChosePos = remember { LatLng(-23.55052, -46.633308) } // Brasil default
+            val cameraState = rememberCameraPositionState {
+                position = CameraPosition.fromLatLngZoom(escolheuLocal ?: mapaChosePos, 13f)
+            }
+
+            // Dialog de confirmação quando o usuário clica no mapa
+            if (dialogConfirmando) {
+                AlertDialog(
+                    onDismissRequest = {
+                        dialogConfirmando = false
                     },
-                    enabled = !obtendoGps
+                    title = { Text("Confirmar local", fontWeight = FontWeight.Bold) },
+                    text = {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Latitude: ${(escolheuLocal?.latitude * 1000000).toRadixString(3)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(8.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Longitude: ${(escolheuLocal?.longitude * 1000000).toRadixString(3)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(8.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text("Confirmar o local escolhido?",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            escolheuLocal = LatLng(
+                                escolheuLocal?.latitude ?: 0.0,
+                                escolheuLocal?.longitude ?: 0.0
+                            )
+                            dialogConfirmando = false
+                            cameraState.position = CameraPosition.fromLatLngZoom(escolheuLocal!!, 15f)
+                        }) {
+                            Text("Confirmar")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = {
+                            dialogConfirmando = false
+                        }) {
+                            Text("Cancelar")
+                        }
+                    }
+                )
+            } else {
+                Card(
+                    modifier = Modifier.fillMaxWidth().height(240.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
                 ) {
-                    Icon(Icons.Default.MyLocation, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(if (obtendoGps) "Obtendo GPS..." else "Capturar Localização")
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        GoogleMap(
+                            modifier = Modifier.fillMaxSize(),
+                            cameraPositionState = cameraState
+                        ) {
+                            // Marcador quando escolheu local
+                            escolheuLocal?.let { loc ->
+                                Marker(
+                                    state = MarkerState(position = loc),
+                                    title = "Escolhido",
+                                    icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE),
+                                    onClick = {}
+                                )
+                            }
+                        }
+                    }
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                // Botão "Usar Local Atual" (GPS)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            obtendoGps = true
+                            LocalizacaoService.obterLocalizacaoAtualLatLng(
+                                context = context,
+                                onSuccess = { lat, lng ->
+                                    escolheuLocal = LatLng(lat, lng)
+                                    obtendoGps = false
+                                    cameraState.position = CameraPosition.fromLatLngZoom(
+                                        LatLng(lat, lng), 16f
+                                    )
+                                },
+                                onFailure = { ex ->
+                                    obtendoGps = false
+                                    mensagemErro = "Não foi possível obter GPS"
+                                }
+                            )
+                        },
+                        enabled = !obtendoGps
+                    ) {
+                        Icon(Icons.Default.MyLocation, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(if (obtendoGps) "Obtendo GPS..." else "Local Atual (GPS)")
+                    }
 
-                localizacao?.let { loc ->
-                    Text(
-                        text = "Lat: %.4f\nLng: %.4f".format(loc.latitude, loc.longitude),
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                    OutlinedButton(
+                        onClick = {
+                            dialogConfirmando = true
+                        },
+                        enabled = escolheuLocal == null
+                    ) {
+                        Icon(Icons.Default.AddLocation, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Clique no mapa para escolher")
+                    }
                 }
+
+                Spacer(modifier = Modifier.weight(1f))
             }
 
             mensagemErro?.let { erro ->
@@ -432,11 +528,7 @@ fun ReportarScreen(
             Button(
                 onClick = {
                     mensagemErro = null
-                    val loc = localizacao
-                    if (loc == null) {
-                        mensagemErro = "Por favor, capture a localização GPS"
-                        return@Button
-                    }
+                    val loc = escolheuLocal ?: return@Button
 
                     enviando = true
                     scope.launch {

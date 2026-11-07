@@ -40,4 +40,17 @@ object LocalizacaoService {
             onFailure(e)
         }
     }
+
+    @SuppressLint("MissingPermission")
+    fun obterLocalizacaoAtualLatLng(
+        context: Context,
+        onSuccess: (Double, Double) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        obterLocalizacaoAtual(
+            context = context,
+            onSuccess = { loc -> onSuccess(loc.latitude, loc.longitude) },
+            onFailure = onFailure
+        )
+    }
 }
