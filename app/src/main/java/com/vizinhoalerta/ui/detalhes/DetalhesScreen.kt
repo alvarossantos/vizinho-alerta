@@ -1,6 +1,5 @@
 package com.vizinhoalerta.ui.detalhes
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,21 +17,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
-import com.google.maps.android.compose.rememberCameraPositionState
 import com.vizinhoalerta.data.OcorrenciaRepository
 import com.vizinhoalerta.model.Ocorrencia
 import com.vizinhoalerta.service.AudioService
 import kotlinx.coroutines.launch
+import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.camera.CameraPosition
+import org.maplibre.android.maps.MapView
+import org.maplibre.android.maps.Style
+import org.maplibre.android.annotations.MarkerOptions
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -270,26 +270,45 @@ fun DetalhesScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             val pos = LatLng(o.lat, o.lng)
-                            val cameraPositionState = rememberCameraPositionState {
-                                position = CameraPosition.fromLatLngZoom(pos, 15f)
+                            val context = LocalContext.current
+                            val lifecycleOwner = LocalLifecycleOwner.current
+                            val mapView = remember { MapView(context).apply { onCreate(null) } }
+
+                            DisposableEffect(lifecycleOwner) {
+                                val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                                    when (event) {
+                                        androidx.lifecycle.Lifecycle.Event.ON_START -> mapView.onStart()
+                                        androidx.lifecycle.Lifecycle.Event.ON_RESUME -> mapView.onResume()
+                                        androidx.lifecycle.Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+                                        androidx.lifecycle.Lifecycle.Event.ON_STOP -> mapView.onStop()
+                                        androidx.lifecycle.Lifecycle.Event.ON_DESTROY -> mapView.onDestroy()
+                                        else -> {}
+                                    }
+                                }
+                                lifecycleOwner.lifecycle.addObserver(observer)
+                                onDispose {
+                                    lifecycleOwner.lifecycle.removeObserver(observer)
+                                    mapView.onDestroy()
+                                }
                             }
+
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(200.dp)
                                     .clip(RoundedCornerShape(12.dp))
                             ) {
-                                GoogleMap(
-                                    modifier = Modifier.fillMaxSize(),
-                                    cameraPositionState = cameraPositionState
-                                ) {
-                                    Marker(
-                                        state = MarkerState(position = pos),
-                                        title = o.tipo,
-                                        icon = BitmapDescriptorFactory.defaultMarker(
-                                            if (isResolvido) BitmapDescriptorFactory.HUE_GREEN else BitmapDescriptorFactory.HUE_RED
-                                        )
-                                    )
+                                AndroidView(
+                                    factory = { mapView },
+                                    modifier = Modifier.fillMaxSize()
+                                ) { view ->
+                                    view.getMapAsync { map ->
+                                        map.setStyle(Style.Builder().fromUri("https://demotiles.maplibre.org/style.json")) { _ ->
+                                            map.clear()
+                                            map.addMarker(MarkerOptions().position(pos).title(o.tipo))
+                                            map.cameraPosition = CameraPosition.Builder().target(pos).zoom(15.0).build()
+                                        }
+                                    }
                                 }
                             }
                         }

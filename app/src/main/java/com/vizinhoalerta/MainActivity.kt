@@ -21,9 +21,16 @@ import androidx.navigation.navArgument
 import com.vizinhoalerta.data.AuthRepository
 import com.vizinhoalerta.data.OcorrenciaRepository
 import com.vizinhoalerta.ui.detalhes.DetalhesScreen
+import com.vizinhoalerta.ui.lista.OcorrenciasListScreen
 import com.vizinhoalerta.ui.login.LoginScreen
 import com.vizinhoalerta.ui.mapa.MapaScreen
+import com.vizinhoalerta.ui.perfil.PerfilScreen
 import com.vizinhoalerta.ui.reportar.ReportarScreen
+import com.vizinhoalerta.ui.welcome.WelcomeScreen
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import org.maplibre.android.MapLibre
 
 class MainActivity : ComponentActivity() {
 
@@ -41,10 +48,18 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Inicializa o MapLibre SDK
+        MapLibre.getInstance(this)
+
         solicitarPermissoesSeNecessario()
 
         val authRepository = AuthRepository()
         val ocorrenciaRepository = OcorrenciaRepository()
+
+        // Insere ocorrências de teste caso o banco esteja vazio
+        CoroutineScope(Dispatchers.IO).launch {
+            ocorrenciaRepository.seedOcorrenciasDeTeste()
+        }
 
         setContent {
             MaterialTheme {
@@ -77,19 +92,33 @@ fun VizinhoAlertaApp(
     ocorrenciaRepository: OcorrenciaRepository
 ) {
     val navController = rememberNavController()
+
+    // Se o usuário já estiver logado (sessão em cache), vai direto para o mapa
     val startDestination = remember {
-        if (authRepository.currentUser != null) "mapa" else "login"
+        if (authRepository.currentUser != null) "mapa" else "welcome"
     }
 
     NavHost(
         navController = navController,
         startDestination = startDestination
     ) {
+        composable("welcome") {
+            WelcomeScreen(
+                onExplorarMapa = {
+                    navController.navigate("mapa")
+                },
+                onEntrarClick = {
+                    navController.navigate("login")
+                }
+            )
+        }
+
         composable("login") {
             LoginScreen(
                 authRepository = authRepository,
                 onLoginSucesso = {
                     navController.navigate("mapa") {
+                        popUpTo("welcome") { inclusive = true }
                         popUpTo("login") { inclusive = true }
                     }
                 }
@@ -97,35 +126,104 @@ fun VizinhoAlertaApp(
         }
 
         composable("mapa") {
+            val isLoggedIn = authRepository.currentUser != null
             MapaScreen(
                 ocorrenciaRepository = ocorrenciaRepository,
+                isLoggedIn = isLoggedIn,
                 onNovaOcorrenciaClick = {
-                    navController.navigate("reportar")
+                    if (authRepository.currentUser != null) {
+                        navController.navigate("reportar")
+                    } else {
+                        navController.navigate("login")
+                    }
                 },
                 onOcorrenciaClick = { ocorrenciaId ->
                     navController.navigate("detalhes/$ocorrenciaId")
                 },
+                onListaClick = {
+                    navController.navigate("lista_ocorrencias")
+                },
+                onProfileClick = {
+                    navController.navigate("perfil")
+                },
+                onLoginClick = {
+                    navController.navigate("login")
+                },
                 onLogoutClick = {
                     authRepository.logout()
-                    navController.navigate("login") {
+                    navController.navigate("welcome") {
                         popUpTo("mapa") { inclusive = true }
                     }
                 },
-                onConfirmLocation = { lat, lng -> },
-                onUserLocationReady = { lat, lng -> }
+                onConfirmLocation = { lat, lng ->
+                    if (authRepository.currentUser != null) {
+                        navController.navigate("reportar?lat=$lat&lng=$lng")
+                    } else {
+                        navController.navigate("login")
+                    }
+                },
+                onUserLocationReady = { _, _ -> }
             )
         }
 
-        composable("reportar") {
-            ReportarScreen(
+        composable("lista_ocorrencias") {
+            val isLoggedIn = authRepository.currentUser != null
+            OcorrenciasListScreen(
                 ocorrenciaRepository = ocorrenciaRepository,
                 authRepository = authRepository,
-                onSucesso = {
-                    navController.popBackStack()
+                isLoggedIn = isLoggedIn,
+                onOcorrenciaClick = { ocorrenciaId ->
+                    navController.navigate("detalhes/$ocorrenciaId")
+                },
+                onNavigateMapa = {
+                    navController.navigate("mapa") {
+                        popUpTo("mapa") { inclusive = true }
+                    }
+                },
+                onNavigateLista = {},
+                onNavigatePerfil = {
+                    navController.navigate("perfil")
+                },
+                onNavigateLogin = {
+                    navController.navigate("login")
+                },
+                onLogout = {
+                    authRepository.logout()
+                    navController.navigate("welcome") {
+                        popUpTo("mapa") { inclusive = true }
+                    }
                 },
                 onVoltar = {
                     navController.popBackStack()
                 }
+            )
+        }
+
+        composable("perfil") {
+            PerfilScreen(
+                authRepository = authRepository,
+                onVoltar = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(
+            route = "reportar?lat={lat}&lng={lng}",
+            arguments = listOf(
+                navArgument("lat") { type = NavType.FloatType; defaultValue = 0f },
+                navArgument("lng") { type = NavType.FloatType; defaultValue = 0f }
+            )
+        ) { backStackEntry ->
+            val lat = backStackEntry.arguments?.getFloat("lat")?.toDouble() ?: 0.0
+            val lng = backStackEntry.arguments?.getFloat("lng")?.toDouble() ?: 0.0
+            ReportarScreen(
+                ocorrenciaRepository = ocorrenciaRepository,
+                authRepository = authRepository,
+                initialLat = lat,
+                initialLng = lng,
+                onSucesso = { navController.popBackStack() },
+                onVoltar = { navController.popBackStack() }
             )
         }
 
