@@ -12,7 +12,8 @@
         android:required="false" />
 
     <application
-        android:label="Vizinho Alerta">
+        android:label="Vizinho Alerta"
+        android:theme="@style/Theme.VizinhoAlerta">
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
