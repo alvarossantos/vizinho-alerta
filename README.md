@@ -43,11 +43,37 @@ app/src/main/java/com/vizinhoalerta/
 - Ocorrências aparecem em mapa azul para todos (lado de baixo: verde = resolvido, vermelho = aberto)
 - Usuário pode relatar em cidades ou bairros diferentes dos cadastrados na conta
 
-## Como rodar
-1. Abrir projeto no Android Studio
-2. Configurar `google-services.json` do Firebase
-3. Adicionar chave do Google Maps no `AndroidManifest.xml`
-4. Executar em emulador ou dispositivo físico
+## Como rodar (passo a passo)
+
+### 1. Firebase (gratuito)
+1. Acesse https://console.firebase.google.com
+2. Crie um projeto chamado `vizinho-alerta`
+3. Clique em **Android** → insira `com.vizinhoalerta` como package name
+4. Baixe o `google-services.json` → cole em `app/`
+5. Em **Authentication** → habilite método **E-mail/Senha**
+6. Em **Firestore Database** → crie banco em modo **locked** (regras já no repo)
+7. Em **Storage** → crie bucket padrão
+
+### 2. Google Maps API (gratuito até US$ 200/mês)
+**NÃO é obrigatório para teste local** — sem chave, o app funciona mas mapa ficará cinza.
+1. Acesse https://console.cloud.google.com → **APIs & Services** → **Credenciais**
+2. Criar chave de API → **Restringir chave**
+   - **App Android** → `com.vizinhoalerta`
+   - **APIs** → `Maps SDK for Android`
+3. Copie a chave e cole em `app/src/main/AndroidManifest.xml`:
+   ```xml
+   <meta-data
+       android:name="com.google.android.geo.API_KEY"
+       android:value="SUA_CHAVE_AQUI" />
+   ```
+
+### 3. Sincronizar o Gradle
+Abra o projeto no Android Studio → **File** → **Sync Project with Gradle Files**
+
+### 4. Executar
+Compile e rode no emulador ou dispositivo físico.
+
+Detalhes de Firebase (Auth, Firestore, Storage e regras) e da chave do Maps: `docs/SETUP_FIREBASE.md` e `docs/GOOGLE_MAPS.md`.
 
 ## Stack
 Kotlin, CameraX, Maps SDK, FusedLocation, Firebase (Auth, Firestore, Storage)

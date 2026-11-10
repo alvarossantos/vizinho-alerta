@@ -1,18 +1,25 @@
 # Android / Kotlin
 *.iml
-.gradle/
 .idea/
 .DS_Store
 local.properties
 *.apk
 *.aab
-build/
+app/build/
 captures/
 .externalNativeBuild/
 .cxx/
+gen/
+.gradle/
+**/.gradle/
+**/.cache/
 # Firebase
 google-services.json
 # OS
 Thumbs.db
-*.iml
-.idea/
+# Temp/Logs
+*.log
+*.hprof
+java_pid*gradle/
+gradlew
+gradlew.bat
