@@ -1,20 +1,18 @@
 package com.vizinhoalerta.ui.reportar
 
-import android.content.Context
 import android.graphics.BitmapFactory
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AddLocationAlt
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
@@ -26,19 +24,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalContext
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.CircleMarker
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
-import com.google.maps.android.compose.rememberCameraPositionState
-import com.vizinhoalerta.ui.mapa.DialogChooseLocation
-import com.vizinhoalerta.service.AudioService
-import com.vizinhoalerta.service.CameraService
-import com.vizinhoalerta.service.LocalizacaoService
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
@@ -51,17 +38,27 @@ import com.vizinhoalerta.data.OcorrenciaRepository
 import com.vizinhoalerta.model.Ocorrencia
 import com.vizinhoalerta.service.AudioService
 import com.vizinhoalerta.service.CameraService
-import com.vizinhoalerta.service.AudioService
-import com.vizinhoalerta.service.CameraService
+import com.vizinhoalerta.service.LocalizacaoService
+import com.vizinhoalerta.ui.login.UFS_BRASIL
+import com.vizinhoalerta.ui.mapa.OSM_STYLE_JSON
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.camera.CameraPosition
+import org.maplibre.android.maps.MapView
+import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.Style
+import org.maplibre.android.annotations.MarkerOptions
 import java.io.File
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ReportarScreen(
     ocorrenciaRepository: OcorrenciaRepository,
     authRepository: AuthRepository,
+    initialLat: Double = 0.0,
+    initialLng: Double = 0.0,
     onSucesso: () -> Unit,
     onVoltar: () -> Unit
 ) {
@@ -76,8 +73,10 @@ fun ReportarScreen(
 
     var tipoSelecionado by remember { mutableStateOf(tiposOcorrencia.first()) }
     var descricao by remember { mutableStateOf("") }
+    var estado by remember { mutableStateOf("") }
     var cidade by remember { mutableStateOf("") }
     var bairro by remember { mutableStateOf("") }
+    var expandedEstado by remember { mutableStateOf(false) }
 
     // Foto
     var fotoFile by remember { mutableStateOf<File?>(null) }
@@ -91,18 +90,42 @@ fun ReportarScreen(
     var reproduzindoAudio by remember { mutableStateOf(false) }
 
     // Localização — seja por clique no mapa ou GPS
-    var escolheuLocal by remember { mutableStateOf<LatLng?>(null) }
+    var escolheuLocal by remember {
+        mutableStateOf(if (initialLat != 0.0 && initialLng != 0.0) LatLng(initialLat, initialLng) else null)
+    }
     var obtendoGps by remember { mutableStateOf(false) }
     var dialogConfirmando by remember { mutableStateOf(false) }
 
     var enviando by remember { mutableStateOf(false) }
     var mensagemErro by remember { mutableStateOf<String?>(null) }
 
-    // Pré-preenche cidade/bairro do usuário, mas o usuário pode alterar para qualquer cidade/bairro
+    var mapInstance by remember { mutableStateOf<MapLibreMap?>(null) }
+    val mapView = remember { MapView(context).apply { onCreate(null) } }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            when (event) {
+                androidx.lifecycle.Lifecycle.Event.ON_START -> mapView.onStart()
+                androidx.lifecycle.Lifecycle.Event.ON_RESUME -> mapView.onResume()
+                androidx.lifecycle.Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+                androidx.lifecycle.Lifecycle.Event.ON_STOP -> mapView.onStop()
+                androidx.lifecycle.Lifecycle.Event.ON_DESTROY -> mapView.onDestroy()
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            mapView.onDestroy()
+        }
+    }
+
+    // Pré-preenche estado/cidade/bairro do usuário
     LaunchedEffect(Unit) {
         authRepository.currentUser?.uid?.let { uid ->
             val u = authRepository.getDadosUsuario(uid)
             if (u != null) {
+                estado = u.estado
                 cidade = u.cidade
                 bairro = u.bairro
             }
@@ -120,6 +143,16 @@ fun ReportarScreen(
             if (gravandoAudio && tempoGravacao >= 15) {
                 audioFile = AudioService.pararGravacao()
                 gravandoAudio = false
+            }
+        }
+    }
+
+    LaunchedEffect(escolheuLocal, mapInstance) {
+        mapInstance?.let { map ->
+            map.clear()
+            escolheuLocal?.let { loc ->
+                map.addMarker(MarkerOptions().position(loc).title("Local Escolhido"))
+                map.cameraPosition = CameraPosition.Builder().target(loc).zoom(15.0).build()
             }
         }
     }
@@ -174,7 +207,7 @@ fun ReportarScreen(
                 }
             }
 
-            // Descrição e Bairro
+            // Descrição
             OutlinedTextField(
                 value = descricao,
                 onValueChange = { descricao = it },
@@ -184,10 +217,43 @@ fun ReportarScreen(
                 maxLines = 5
             )
 
+            ExposedDropdownMenuBox(
+                expanded = expandedEstado,
+                onExpandedChange = { expandedEstado = !expandedEstado },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = estado,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Estado (UF)") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedEstado) },
+                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                    singleLine = true,
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = expandedEstado,
+                    onDismissRequest = { expandedEstado = false }
+                ) {
+                    UFS_BRASIL.forEach { uf ->
+                        DropdownMenuItem(
+                            text = { Text(uf) },
+                            onClick = {
+                                estado = uf
+                                expandedEstado = false
+                            }
+                        )
+                    }
+                }
+            }
+
             OutlinedTextField(
                 value = cidade,
                 onValueChange = { cidade = it },
-                label = { Text("Cidade da ocorrência") },
+                label = { Text("Cidade") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -396,13 +462,9 @@ fun ReportarScreen(
                 fontWeight = FontWeight.Bold
             )
 
-            val mapaChosePos = remember { LatLng(-23.55052, -46.633308) } // Brasil default
-            val cameraState = rememberCameraPositionState {
-                position = CameraPosition.fromLatLngZoom(escolheuLocal ?: mapaChosePos, 13f)
-            }
-
             // Dialog de confirmação quando o usuário clica no mapa
             if (dialogConfirmando) {
+                val loc = escolheuLocal
                 AlertDialog(
                     onDismissRequest = {
                         dialogConfirmando = false
@@ -410,17 +472,22 @@ fun ReportarScreen(
                     title = { Text("Confirmar local", fontWeight = FontWeight.Bold) },
                     text = {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Latitude: ${(escolheuLocal?.latitude * 1000000).toRadixString(3)}",
+                            Text(
+                                text = String.format(Locale.US, "Latitude: %.6f", loc?.latitude ?: 0.0),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(8.dp))
+                                modifier = Modifier.padding(8.dp)
+                            )
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text("Longitude: ${(escolheuLocal?.longitude * 1000000).toRadixString(3)}",
+                            Text(
+                                text = String.format(Locale.US, "Longitude: %.6f", loc?.longitude ?: 0.0),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(8.dp))
+                                modifier = Modifier.padding(8.dp)
+                            )
                             Spacer(modifier = Modifier.height(12.dp))
-                            Text("Confirmar o local escolhido?",
+                            Text(
+                                text = "Confirmar o local escolhido?",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -428,12 +495,10 @@ fun ReportarScreen(
                     },
                     confirmButton = {
                         TextButton(onClick = {
-                            escolheuLocal = LatLng(
-                                escolheuLocal?.latitude ?: 0.0,
-                                escolheuLocal?.longitude ?: 0.0
-                            )
                             dialogConfirmando = false
-                            cameraState.position = CameraPosition.fromLatLngZoom(escolheuLocal!!, 15f)
+                            loc?.let {
+                                mapInstance?.cameraPosition = CameraPosition.Builder().target(it).zoom(15.0).build()
+                            }
                         }) {
                             Text("Confirmar")
                         }
@@ -446,72 +511,77 @@ fun ReportarScreen(
                         }
                     }
                 )
-            } else {
-                Card(
-                    modifier = Modifier.fillMaxWidth().height(240.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
-                ) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        GoogleMap(
-                            modifier = Modifier.fillMaxSize(),
-                            cameraPositionState = cameraState
-                        ) {
-                            // Marcador quando escolheu local
-                            escolheuLocal?.let { loc ->
-                                Marker(
-                                    state = MarkerState(position = loc),
-                                    title = "Escolhido",
-                                    icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE),
-                                    onClick = {}
-                                )
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(240.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    AndroidView(
+                        factory = { mapView },
+                        modifier = Modifier.fillMaxSize()
+                    ) { view ->
+                        view.getMapAsync { map ->
+                            if (mapInstance == null) {
+                                map.setStyle(Style.Builder().fromJson(OSM_STYLE_JSON)) { _ ->
+                                    mapInstance = map
+                                    map.addOnMapClickListener { latLng ->
+                                        escolheuLocal = latLng
+                                        dialogConfirmando = true
+                                        true
+                                    }
+                                }
                             }
                         }
                     }
                 }
+            }
 
-                // Botão "Usar Local Atual" (GPS)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+            // Botão "Usar Local Atual" (GPS)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        obtendoGps = true
+                        LocalizacaoService.obterLocalizacaoAtualLatLng(
+                            context = context,
+                            onSuccess = { lat, lng ->
+                                val loc = LatLng(lat, lng)
+                                escolheuLocal = loc
+                                obtendoGps = false
+                                mapInstance?.cameraPosition = CameraPosition.Builder()
+                                    .target(loc)
+                                    .zoom(16.0)
+                                    .build()
+                            },
+                            onFailure = { _ ->
+                                obtendoGps = false
+                                mensagemErro = "Não foi possível obter GPS"
+                            }
+                        )
+                    },
+                    enabled = !obtendoGps
                 ) {
-                    OutlinedButton(
-                        onClick = {
-                            obtendoGps = true
-                            LocalizacaoService.obterLocalizacaoAtualLatLng(
-                                context = context,
-                                onSuccess = { lat, lng ->
-                                    escolheuLocal = LatLng(lat, lng)
-                                    obtendoGps = false
-                                    cameraState.position = CameraPosition.fromLatLngZoom(
-                                        LatLng(lat, lng), 16f
-                                    )
-                                },
-                                onFailure = { ex ->
-                                    obtendoGps = false
-                                    mensagemErro = "Não foi possível obter GPS"
-                                }
-                            )
-                        },
-                        enabled = !obtendoGps
-                    ) {
-                        Icon(Icons.Default.MyLocation, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (obtendoGps) "Obtendo GPS..." else "Local Atual (GPS)")
-                    }
-
-                    OutlinedButton(
-                        onClick = {
-                            dialogConfirmando = true
-                        },
-                        enabled = escolheuLocal == null
-                    ) {
-                        Icon(Icons.Default.AddLocation, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Clique no mapa para escolher")
-                    }
+                    Icon(Icons.Default.MyLocation, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(if (obtendoGps) "Obtendo GPS..." else "Local Atual (GPS)")
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
+                OutlinedButton(
+                    onClick = {
+                        dialogConfirmando = true
+                    },
+                    enabled = escolheuLocal != null
+                ) {
+                    Icon(Icons.Default.AddLocationAlt, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Local escolhido")
+                }
             }
 
             mensagemErro?.let { erro ->
@@ -528,7 +598,11 @@ fun ReportarScreen(
             Button(
                 onClick = {
                     mensagemErro = null
-                    val loc = escolheuLocal ?: return@Button
+                    val loc = escolheuLocal
+                    if (loc == null) {
+                        mensagemErro = "Selecione um local no mapa ou ative a localização GPS"
+                        return@Button
+                    }
 
                     enviando = true
                     scope.launch {
@@ -542,6 +616,7 @@ fun ReportarScreen(
                             descricao = descricao,
                             lat = loc.latitude,
                             lng = loc.longitude,
+                            estado = estado,
                             cidade = cidade,
                             bairro = bairro,
                             status = "aberto",
