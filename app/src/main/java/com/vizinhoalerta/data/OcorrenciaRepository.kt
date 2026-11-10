@@ -17,6 +17,57 @@ class OcorrenciaRepository(
     private val storage: FirebaseStorage = FirebaseStorage.getInstance()
 ) {
 
+    suspend fun seedOcorrenciasDeTeste() {
+        try {
+            val snapshot = firestore.collection("ocorrencias").limit(1).get().await()
+            if (snapshot.isEmpty) {
+                val exemplos = listOf(
+                    Ocorrencia(
+                        id = "teste_1",
+                        tipo = "Iluminação danificada",
+                        descricao = "Poste de luz apagado na rua principal há 3 dias.",
+                        lat = -23.55052,
+                        lng = -46.633308,
+                        estado = "SP",
+                        cidade = "São Paulo",
+                        bairro = "Centro",
+                        status = "aberto",
+                        createdAt = System.currentTimeMillis()
+                    ),
+                    Ocorrencia(
+                        id = "teste_2",
+                        tipo = "Suspeita",
+                        descricao = "Movimento estranho de veículo próximo à praça.",
+                        lat = -23.55552,
+                        lng = -46.643308,
+                        estado = "SP",
+                        cidade = "São Paulo",
+                        bairro = "Consolação",
+                        status = "aberto",
+                        createdAt = System.currentTimeMillis() - 86400000
+                    ),
+                    Ocorrencia(
+                        id = "teste_3",
+                        tipo = "Vandalismo",
+                        descricao = "Pichação em patrimônio público na praça central.",
+                        lat = -19.91668,
+                        lng = -43.93449,
+                        estado = "MG",
+                        cidade = "Belo Horizonte",
+                        bairro = "Savassi",
+                        status = "resolvido",
+                        createdAt = System.currentTimeMillis() - 172800000
+                    )
+                )
+                for (ex in exemplos) {
+                    firestore.collection("ocorrencias").document(ex.id).set(ex).await()
+                }
+            }
+        } catch (e: Exception) {
+            // Ignora erro de seed
+        }
+    }
+
     fun observarOcorrencias(): Flow<List<Ocorrencia>> = callbackFlow {
         val listener = firestore.collection("ocorrencias")
             .orderBy("createdAt", Query.Direction.DESCENDING)
