@@ -67,9 +67,9 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:$cameraVersion")
     implementation("androidx.camera:camera-view:$cameraVersion")
 
-    // Location & Maps
+    // Location & Maps (MapLibre - OpenStreetMap, no API key needed!)
     implementation("com.google.android.gms:play-services-location:21.3.0")
-    implementation("com.google.android.gms:play-services-maps:18.2.0")
+    implementation("org.maplibre.gl:android-sdk:13.7.1")
     implementation("com.google.maps.android:maps-compose:2.13.0")
 
     // Firebase BOM

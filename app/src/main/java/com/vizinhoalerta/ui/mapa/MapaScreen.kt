@@ -1,11 +1,13 @@
 package com.vizinhoalerta.ui.mapa
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -13,17 +15,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.GoogleMap
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.MyLocation
-import androidx.compose.material.icons.filled.Person
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.model.*
-import com.google.maps.android.compose.*
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberCameraPositionState
 import com.vizinhoalerta.data.AuthRepository
 import com.vizinhoalerta.data.OcorrenciaRepository
 import com.vizinhoalerta.service.LocalizacaoService
@@ -49,7 +45,7 @@ fun MapaScreen(
 
     val defaultPos = LatLng(-23.55052, -46.633308)
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(defaultPos, 13f)
+        position = com.google.android.gms.maps.model.CameraPosition.fromLatLngZoom(defaultPos, 13f)
     }
 
     LaunchedEffect(Unit) {
@@ -58,11 +54,11 @@ fun MapaScreen(
             onSuccess = { lat, lng ->
                 userLocation = LatLng(lat, lng)
                 loadingLocation = false
-                cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(
+                cameraPositionState.position = com.google.android.gms.maps.model.CameraPosition.fromLatLngZoom(
                     LatLng(lat, lng), 16f
-                ))
+                )
             },
-            onFailure = { _ ->
+            onFailure = {
                 loadingLocation = false
             }
         )
@@ -80,9 +76,10 @@ fun MapaScreen(
                         Icon(Icons.Default.Person, contentDescription = "Perfil")
                     }
                     IconButton(onClick = {
+                        authRepository.logout()
                         onLogoutClick()
                     }) {
-                        Icon(Icons.Default.Clear, contentDescription = "Sair")
+                        Icon(Icons.Default.MyLocation, contentDescription = "Sair")
                     }
                 }
             )
@@ -122,13 +119,6 @@ fun MapaScreen(
                                 state = MarkerState(position = LatLng(ocorrencia.lat, ocorrencia.lng)),
                                 title = ocorrencia.tipo,
                                 snippet = "${ocorrencia.bairro} — ${ocorrencia.status}",
-                                icon = BitmapDescriptorFactory.defaultMarker(
-                                    if (ocorrencia.status == "resolvido") {
-                                        BitmapDescriptorFactory.HUE_GREEN
-                                    } else {
-                                        BitmapDescriptorFactory.HUE_RED
-                                    }
-                                ),
                                 onClick = {
                                     onOcorrenciaClick(ocorrencia.id)
                                     true
@@ -141,7 +131,9 @@ fun MapaScreen(
                         Marker(
                             state = MarkerState(position = loc),
                             title = "Minha localização",
-                            icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE),
+                            icon = com.google.android.gms.maps.model.BitmapDescriptorFactory.defaultMarker(
+                                com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_BLUE
+                            ),
                             onClick = false
                         )
                     }
@@ -151,9 +143,9 @@ fun MapaScreen(
             if (userLocation != null) {
                 FloatingActionButton(
                     onClick = {
-                        cameraPositionState.move(
-                            CameraUpdateFactory.newLatLngZoom(userLocation!!, 16f)
-                        )
+                        userLocation?.let { loc ->
+                            cameraPositionState.position = com.google.android.gms.maps.model.CameraPosition.fromLatLngZoom(loc, 16f)
+                        }
                     },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
