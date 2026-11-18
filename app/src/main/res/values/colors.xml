@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="md_theme_primary">#4CAF50</color>
+    <color name="md_theme_primary_variant">#388E3C</color>
+    <color name="md_theme_on_primary">#FFFFFF</color>
+
+    <color name="md_theme_secondary">#2196F3</color>
+    <color name="md_theme_secondary_variant">#03A9F4</color>
+    <color name="md_theme_on_secondary">#FFFFFF</color>
+
+    <color name="md_theme_surface">#FFFFFF</color>
+    <color name="md_theme_surface_variant">#F5F5F5</color>
+    <color name="md_theme_on_surface">#000000</color>
+    <color name="md_theme_on_surface_variant">#424242</color>
+
+    <color name="md_theme_error">#F44336</color>
+    <color name="md_theme_error_container">#FFEBEE</color>
+    <color name="md_theme_on_error">#FFFFFF</color>
+
+    <!-- Custom colors -->
+    <color name="success">#4CAF50</color>
+    <color name="warning">#FF9800</color>
+    <color name="danger">#F44336</color>
+    <color name="info">#2196F3</color>
+
+    <!-- Map markers -->
+    <color name="marker_open">#D32F2F</color>
+    <color name="marker_resolved">#388E3C</color>
+    <color name="marker_user">#1976D2</color>
+</resources>

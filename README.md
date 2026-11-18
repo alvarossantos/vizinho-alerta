@@ -17,7 +17,8 @@ Moradores registram situações suspeitas ou problemas urbanos (rua escura, vand
 - **CameraX** para captura de fotos
 - **MediaRecorder** para áudio de 15 segundos
 - **FusedLocationProviderClient** para GPS
-- **Firebase Auth + Firestore + Storage**
+- **Firebase Auth + Firestore + Storage + Realtime Database**
+- **Google Sign-In** (login via Gmail)
 
 ## Estrutura
 ```
@@ -27,6 +28,7 @@ app/src/main/java/com/vizinhoalerta/
 │   ├── Ocorrencia.kt
 │   └── Usuario.kt
 ├── data/
+│   ├── AuthRepository.kt
 │   └── OcorrenciaRepository.kt
 ├── ui/
 │   ├── login/
@@ -42,15 +44,28 @@ app/src/main/java/com/vizinhoalerta/
 ```
 
 ## Funcionalidades MVP
-- Cadastro/login com nome, email, cidade e bairro
-- **Mapa com localização do usuário em azul** (Blue Dot) — todos veem onde estão
+
+### Autenticação
+- Login e cadastro com email/senha
+- **Login via Google** (Gmail) com token de conexão
+- Validação de senha: 8+ chars, maiúscula, número, caractere especial
+- Perfil do usuário com cidade e bairro
+
+### Mapa e Localização
+- **Mapa com localização do usuário em azul** (Blue Dot)
 - Botão "Local Atual" → recente a câmera para a posição do usuário
 - Clique no mapa → menu de confirmação da escolha do local
-- Escolha local: clique no mapa no Reportar (confirmar) ou use GPS automático
+- Escolha local: clique no mapa ou use GPS automático
+
+### Ocorrências
 - Nova ocorrência: foto + áudio + GPS + cidade + bairro customizado
 - Feed de ocorrências em tempo real com marcadores coloridos
-- Detalhes: foto, reprodução de áudio, mapa de localização, botão "Marcar como Resolvido"
-- Ocorrências aparecem em mapa azul para todos (lado de baixo: verde = resolvido, vermelho = aberto)
+- Detalhes: foto, reprodução de áudio, mapa de localização
+- Botão "Marcar como Resolvido"
+- **Paleta de cores moderna** (verde=resolvido, vermelho=aberto, azul=seu local)
+
+### Navegação
+Welcome → Login → Mapa → Reportar/Detalhes/Lista/Perfil
 
 ## Como rodar
 
@@ -59,9 +74,12 @@ app/src/main/java/com/vizinhoalerta/
 2. Crie um projeto chamado `vizinho-alerta`
 3. Clique em **Android** → insira `com.vizinhoalerta` como package name
 4. Baixe o `google-services.json` → cole em `app/`
-5. Em **Authentication** → habilite método **E-mail/Senha**
-6. Em **Firestore Database** → crie banco em modo **locked** (regras já no repo)
+5. Em **Authentication** → habilite métodos:
+   - Email/Senha
+   - Google Sign-In
+6. Em **Firestore Database** → crie banco em modo **locked**
 7. Em **Storage** → crie bucket padrão
+8. Ative o **Realtime Database** (para token de conexão)
 
 ### 2. Sincronizar o Gradle
 Abra o projeto no Android Studio → **File** → **Sync Project with Gradle Files**
@@ -70,7 +88,7 @@ Abra o projeto no Android Studio → **File** → **Sync Project with Gradle Fil
 Compile e rode no emulador ou dispositivo físico.
 
 ## Stack
-Kotlin, Jetpack Compose, MapLibre (OpenStreetMap), CameraX, FusedLocation, Firebase (Auth, Firestore, Storage)
+Kotlin, Jetpack Compose, MapLibre (OpenStreetMap), CameraX, FusedLocation, Firebase (Auth, Firestore, Storage, Realtime DB), Google Sign-In
 
 ## Entrega
-Trabalho individual — disciplina de programação mobile (prazo 05/12/2026).
+Trabalho individual — disciplina de programação mobile (prazo 05/12/2026)
