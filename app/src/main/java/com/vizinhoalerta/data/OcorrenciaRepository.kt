@@ -239,7 +239,8 @@ class OcorrenciaRepository(
     }
 
     /**
-     * Executa uma operação com retry exponencial em caso de falha de rede
+     * Executa uma operação com retry exponencial em caso de falha de rede.
+     * Propaga CancellationException e não repete em erros de permissão (PERMISSION_DENIED).
      */
     private suspend fun <T> tryWithRetry(
         operation: suspend () -> Result<T>,
@@ -256,8 +257,22 @@ class OcorrenciaRepository(
                     return result
                 }
                 lastError = result.exceptionOrNull()
+                
+                // Erros permanentes não devem ser repetidos
+                if (isPermanentError(lastError)) {
+                    return Result.failure(lastError!!)
+                }
             } catch (e: Exception) {
+                // Propagar CancellationException (cancelamento de coroutine)
+                if (e is java.util.concurrent.CancellationException || e is kotlin.coroutines.cancellation.CancellationException) {
+                    throw e
+                }
                 lastError = e
+                
+                // Erros de permissão são permanentes
+                if (isPermanentError(e)) {
+                    return Result.failure(e)
+                }
             }
             attempt++
             if (attempt < maxRetries) {
@@ -266,5 +281,14 @@ class OcorrenciaRepository(
         }
         
         return Result.failure(lastError!!)
+    }
+    
+    private fun isPermanentError(e: Exception?): Boolean {
+        if (e == null) return false
+        val msg = e.message?.lowercase() ?: return false
+        return msg.contains("permission_denied") || 
+               msg.contains("unauthenticated") ||
+               msg.contains("forbidden") ||
+               msg.contains("invalid") // Erro de validação de regras
     }
 }

@@ -16,12 +16,19 @@ service cloud.firestore {
         && request.resource.data.status == 'aberto'
         && request.resource.data.createdAt is number;
         
-      // Atualização: autor OU admin podem alterar
+      // Atualização: AUTHOR pode mudar situacao para resolvido/rejeitado
       allow update: if request.auth != null
-        && resource.data.userId == request.auth.uid  // Autor pode alterar suas ocorrências
+        && resource.data.userId == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['situacao', 'status'])
-        && request.resource.data.situacao in ['registrado', 'resolvido', 'rejeitado', 'em_verificacao', 'confirmado']
+        && request.resource.data.situacao in ['registrado', 'resolvido', 'rejeitado']
+        && request.resource.data.status in ['aberto', 'resolvido'];
+      
+      // Atualização ADMIN: ADMIN pode mudar qualquer situacao
+      allow update: if request.auth != null && request.auth.token.admin == true
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['situacao', 'status'])
+        && request.resource.data.situacao in ['registrado', 'em_verificacao', 'confirmado', 'resolvido', 'rejeitado']
         && request.resource.data.status in ['aberto', 'resolvido'];
         
       allow delete: if request.auth != null

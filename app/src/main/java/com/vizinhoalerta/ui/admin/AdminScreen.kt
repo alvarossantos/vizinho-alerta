@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.vizinhoalerta.data.OcorrenciaRepository
 import com.vizinhoalerta.model.Ocorrencia
 import com.vizinhoalerta.model.Ocorrencia.Companion.*
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,6 +28,7 @@ fun AdminScreen(
 ) {
     var ocorrencias by remember { mutableStateOf<List<Ocorrencia>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         try {
@@ -62,13 +64,24 @@ fun AdminScreen(
             items(ocorrencias) { ocorrencia ->
                 AdminOcorrenciaRow(
                     ocorrencia = ocorrencia,
-                    onAtualizar = { ocorr ->
-                        val status = if (ocorr.situacao == Ocorrencia.SITUACAO_RESOLVIDO) "resolvido" else "aberto"
-                        ocorrenciaRepository.atualizarSituacaoComStatus(ocorr.id, ocorr.situacao, status)
+                    onAtualizar = { ocorr, situacao, status ->
+                        scope.launch {
+                            ocorrenciaRepository.atualizarSituacaoComStatus(ocorr.id, situacao, status)
+                            // Recarrega lista após atualização
+                            val index = ocorrencias.indexOfFirst { it.id == ocorr.id }
+                            if (index != -1) {
+                                ocorrencias = ocorrencias.toMutableList().apply {
+                                    set(index, ocorrencia.copy(situacao = situacao, status = status))
+                                }
+                            }
+                        }
                     },
                     onExcluir = {
-                        ocorrenciaRepository.deletarComMidia(ocorrencia.id)
-                        // Recarrega lista - simplificação
+                        scope.launch {
+                            ocorrenciaRepository.deletarComMidia(ocorrencia.id)
+                            // Recarrega lista
+                            ocorrencias = ocorrencias.filterNot { it.id == ocorrencia.id }
+                        }
                     }
                 )
             }
@@ -79,7 +92,7 @@ fun AdminScreen(
 @Composable
 fun AdminOcorrenciaRow(
     ocorrencia: Ocorrencia,
-    onAtualizar: (Ocorrencia) -> Unit,
+    onAtualizar: (Ocorrencia, String, String) -> Unit,
     onExcluir: () -> Unit
 ) {
     Card(
@@ -121,27 +134,27 @@ fun AdminOcorrenciaRow(
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = { onAtualizar(ocorrencia.copy(situacao = SITUACAO_REGISTRADO)) }) {
+                TextButton(onClick = { onAtualizar(ocorrencia, SITUACAO_REGISTRADO, "aberto") }) {
                     Text("Registrado", modifier = Modifier.alpha(0.7f))
                 }
-                TextButton(onClick = { onAtualizar(ocorrencia.copy(situacao = SITUACAO_EM_VERIFICACAO)) }) {
+                TextButton(onClick = { onAtualizar(ocorrencia, SITUACAO_EM_VERIFICACAO, "aberto") }) {
                     Text("Verif.", modifier = Modifier.alpha(0.7f))
                 }
-                TextButton(onClick = { onAtualizar(ocorrencia.copy(situacao = SITUACAO_CONFIRMADO)) }) {
+                TextButton(onClick = { onAtualizar(ocorrencia, SITUACAO_CONFIRMADO, "aberto") }) {
                     Text("Confirmado", modifier = Modifier.alpha(0.7f))
                 }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = { onAtualizar(ocorrencia.copy(situacao = SITUACAO_RESOLVIDO, status = "resolvido")) }) {
+                TextButton(onClick = { onAtualizar(ocorrencia, SITUACAO_RESOLVIDO, "resolvido") }) {
                     Icon(Icons.Default.CleaningServices, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Resolver")
                 }
-                TextButton(onClick = { onAtualizar(ocorrencia.copy(situacao = SITUACAO_REJEITADO)) }) {
+                TextButton(onClick = { onExcluir() }) {
                     Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Red)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Rejeitar", color = Color.Red)
+                    Text("Excluir", color = Color.Red)
                 }
             }
         }
