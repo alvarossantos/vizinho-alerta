@@ -321,7 +321,7 @@ fun DetalhesScreen(
                             onClick = {
                                 atualizandoStatus = true
                                 scope.launch {
-                                    val res = ocorrenciaRepository.resolver(o.id)
+                                    val res = ocorrenciaRepository.atualizarSituacao(o.id, "resolvido")
                                     atualizandoStatus = false
                                     res.onSuccess {
                                         ocorrencia = o.copy(status = "resolvido")
