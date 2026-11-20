@@ -154,10 +154,10 @@ class OcorrenciaRepository(
 
     suspend fun resolver(id: String, userId: String): Result<Unit> {
         return tryWithRetry {
-            // Deve ser chamado pelo autor
+            // Deve ser chamado pelo autor - atualiza status e situacao juntos
             firestore.collection("ocorrencias")
                 .document(id)
-                .update("status", "resolvido")
+                .update("status", "resolvido", "situacao", "resolvido")
                 .await()
             Result.success(Unit)
         }
@@ -168,6 +168,16 @@ class OcorrenciaRepository(
             firestore.collection("ocorrencias")
                 .document(id)
                 .update("situacao", situacao)
+                .await()
+            Result.success(Unit)
+        }
+    }
+
+    suspend fun atualizarSituacaoComStatus(id: String, situacao: String, status: String): Result<Unit> {
+        return tryWithRetry {
+            firestore.collection("ocorrencias")
+                .document(id)
+                .update("situacao", situacao, "status", status)
                 .await()
             Result.success(Unit)
         }
@@ -184,6 +194,51 @@ class OcorrenciaRepository(
     }
 
     /**
+     * Deleta uma ocorrência e seus arquivos de mídia associados
+     */
+    suspend fun deletarComMidia(ocorrenciaId: String): Result<Unit> {
+        return tryWithRetry {
+            // Primeiro, obter a ocorrência para pegar os URLs de mídia
+            val doc = firestore.collection("ocorrencias").document(ocorrenciaId).get().await()
+            val ocorrencia = doc.toObject(Ocorrencia::class.java)
+            
+            // Deletar arquivos no Storage se existentes
+            ocorrencia?.let { corr ->
+                if (corr.fotoUrl.isNotBlank()) {
+                    val fotoPath = extractStoragePath(corr.fotoUrl)
+                    if (fotoPath != null) {
+                        storage.reference.child(fotoPath).delete().await()
+                    }
+                }
+                if (corr.audioUrl.isNotBlank()) {
+                    val audioPath = extractStoragePath(corr.audioUrl)
+                    if (audioPath != null) {
+                        storage.reference.child(audioPath).delete().await()
+                    }
+                }
+            }
+            
+            // Deletar documento
+            firestore.collection("ocorrencias").document(ocorrenciaId).delete().await()
+            Result.success(Unit)
+        }
+    }
+
+    private fun extractStoragePath(fullUrl: String): String? {
+        // Extrai o caminho do Storage de uma URL completa
+        // Formato: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{path}?...
+        return try {
+            val regex = """/o/([^?]+)""".toRegex()
+            val match = regex.find(fullUrl)
+            match?.groupValues?.get(1)?.let { 
+                java.net.URLDecoder.decode(it, "UTF-8")
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
      * Executa uma operação com retry exponencial em caso de falha de rede
      */
     private suspend fun <T> tryWithRetry(
@@ -195,19 +250,21 @@ class OcorrenciaRepository(
         var lastError: Exception? = null
         
         while (attempt < maxRetries) {
-            val result = operation()
-            if (result.isSuccess) {
-                return result
+            try {
+                val result = operation()
+                if (result.isSuccess) {
+                    return result
+                }
+                lastError = result.exceptionOrNull()
+            } catch (e: Exception) {
+                lastError = e
             }
-            lastError = result.exceptionOrNull()
             attempt++
             if (attempt < maxRetries) {
-                delay(delayMs * attempt) // Retry exponencial
+                delay(delayMs * (1L shl (attempt - 1))) // Exponencial: 1000, 2000, 4000
             }
         }
         
-        return Result.failure(lastError!!).also { 
-            /* Log ou notificar se necessário */ 
-        }
+        return Result.failure(lastError!!)
     }
 }

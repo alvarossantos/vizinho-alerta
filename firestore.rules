@@ -16,15 +16,16 @@ service cloud.firestore {
         && request.resource.data.status == 'aberto'
         && request.resource.data.createdAt is number;
         
+      // Atualização: autor OU admin podem alterar
       allow update: if request.auth != null
-        && resource.data.userId == request.auth.uid  // Só autor pode alterar
+        && resource.data.userId == request.auth.uid  // Autor pode alterar suas ocorrências
         && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['situacao', 'status'])
-        && request.resource.data.situacao in ['registrado', 'resolvido', 'rejeitado']  // Autor pode resolver ou rejeitar
+        && request.resource.data.situacao in ['registrado', 'resolvido', 'rejeitado', 'em_verificacao', 'confirmado']
         && request.resource.data.status in ['aberto', 'resolvido'];
         
       allow delete: if request.auth != null
-        && resource.data.userId == request.auth.uid;
+        && (resource.data.userId == request.auth.uid || request.auth.token.admin == true);
     }
     
     // Coleção de filas para moderação (futuro)

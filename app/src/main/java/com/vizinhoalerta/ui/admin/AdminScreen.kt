@@ -63,10 +63,11 @@ fun AdminScreen(
                 AdminOcorrenciaRow(
                     ocorrencia = ocorrencia,
                     onAtualizar = { ocorr ->
-                        ocorrenciaRepository.atualizarSituacao(ocorr.id, ocorr.situacao)
+                        val status = if (ocorr.situacao == Ocorrencia.SITUACAO_RESOLVIDO) "resolvido" else "aberto"
+                        ocorrenciaRepository.atualizarSituacaoComStatus(ocorr.id, ocorr.situacao, status)
                     },
                     onExcluir = {
-                        ocorrenciaRepository.deletar(ocorrencia.id)
+                        ocorrenciaRepository.deletarComMidia(ocorrencia.id)
                         // Recarrega lista - simplificação
                     }
                 )
