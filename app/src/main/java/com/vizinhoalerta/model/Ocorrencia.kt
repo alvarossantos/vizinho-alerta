@@ -10,9 +10,17 @@ data class Ocorrencia(
     val audioUrl: String = "",
     val lat: Double = 0.0,
     val lng: Double = 0.0,
-    val estado: String = "",
+    val situacao: String = "registrado", // registrado | em_verificacao | confirmado | resolvido | rejeitado
     val cidade: String = "",
     val bairro: String = "",
     val status: String = "aberto", // aberto | resolvido
     val createdAt: Long = System.currentTimeMillis()
-)
+) {
+    companion object {
+        const val SITUACAO_REGISTRADO = "registrado"
+        const val SITUACAO_EM_VERIFICACAO = "em_verificacao"
+        const val SITUACAO_CONFIRMADO = "confirmado"
+        const val SITUACAO_RESOLVIDO = "resolvido"
+        const val SITUACAO_REJEITADO = "rejeitado"
+    }
+}

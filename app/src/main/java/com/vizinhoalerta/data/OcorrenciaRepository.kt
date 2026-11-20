@@ -34,7 +34,7 @@ class OcorrenciaRepository(
                         descricao = "Poste de luz apagado na rua principal há 3 dias.",
                         lat = -23.55052,
                         lng = -46.633308,
-                        estado = "SP",
+                        situacao = "confirmado",
                         cidade = "São Paulo",
                         bairro = "Centro",
                         status = "aberto",
@@ -46,7 +46,7 @@ class OcorrenciaRepository(
                         descricao = "Movimento estranho de veículo próximo à praça.",
                         lat = -23.55552,
                         lng = -46.643308,
-                        estado = "SP",
+                        situacao = "em_verificacao",
                         cidade = "São Paulo",
                         bairro = "Consolação",
                         status = "aberto",
@@ -58,7 +58,7 @@ class OcorrenciaRepository(
                         descricao = "Pichação em patrimônio público na praça central.",
                         lat = -19.91668,
                         lng = -43.93449,
-                        estado = "MG",
+                        situacao = "resolvido",
                         cidade = "Belo Horizonte",
                         bairro = "Savassi",
                         status = "resolvido",
@@ -156,6 +156,26 @@ class OcorrenciaRepository(
             firestore.collection("ocorrencias")
                 .document(id)
                 .update("status", "resolvido")
+                .await()
+            Result.success(Unit)
+        }
+    }
+
+    suspend fun atualizarSituacao(id: String, situacao: String): Result<Unit> {
+        return tryWithRetry {
+            firestore.collection("ocorrencias")
+                .document(id)
+                .update("situacao", situacao)
+                .await()
+            Result.success(Unit)
+        }
+    }
+
+    suspend fun deletar(id: String): Result<Unit> {
+        return tryWithRetry {
+            firestore.collection("ocorrencias")
+                .document(id)
+                .delete()
                 .await()
             Result.success(Unit)
         }

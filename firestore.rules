@@ -12,12 +12,13 @@ service cloud.firestore {
         && request.resource.data.tipo is string
         && request.resource.data.lat is number
         && request.resource.data.lng is number
+        && request.resource.data.situacao in ['registrado', 'em_verificacao', 'confirmado', 'resolvido', 'rejeitado']
         && request.resource.data.status in ['aberto', 'resolvido'];
         
       allow update: if request.auth != null
-        && resource.data.userId == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['status'])
+            .hasOnly(['situacao', 'status'])
+        && request.resource.data.situacao in ['registrado', 'em_verificacao', 'confirmado', 'resolvido', 'rejeitado']
         && request.resource.data.status in ['aberto', 'resolvido'];
         
       allow delete: if request.auth != null
