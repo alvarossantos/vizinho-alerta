@@ -19,6 +19,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.vizinhoalerta.data.AuthRepository
 import com.vizinhoalerta.data.OcorrenciaRepository
+import com.vizinhoalerta.ui.admin.AdminScreen
 import com.vizinhoalerta.ui.detalhes.DetalhesScreen
 import com.vizinhoalerta.ui.lista.OcorrenciasListScreen
 import com.vizinhoalerta.ui.login.LoginScreen
@@ -155,6 +156,13 @@ fun VizinhoAlertaApp(
             val id = backStackEntry.arguments?.getString("ocorrenciaId") ?: ""
             DetalhesScreen(
                 ocorrenciaId = id,
+                ocorrenciaRepository = ocorrenciaRepository,
+                onVoltar = { navController.popBackStack() }
+            )
+        }
+
+        composable("admin") {
+            AdminScreen(
                 ocorrenciaRepository = ocorrenciaRepository,
                 onVoltar = { navController.popBackStack() }
             )
