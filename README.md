@@ -36,7 +36,9 @@ app/src/main/java/com/vizinhoalerta/
 │   ├── reportar/
 │   ├── detalhes/
 │   ├── lista/
-│   └── perfil/
+│   ├── perfil/
+│   └── admin/
+│       └── AdminScreen.kt
 └── service/
     ├── CameraService.kt
     ├── LocalizacaoService.kt
@@ -65,7 +67,61 @@ app/src/main/java/com/vizinhoalerta/
 - **Paleta de cores moderna** (verde=resolvido, vermelho=aberto, azul=seu local)
 
 ### Navegação
-Welcome → Login → Mapa → Reportar/Detalhes/Lista/Perfil
+Welcome → Login → Mapa → Reportar/Detalhes/Lista/Perfil/Admin
+
+## Regras de Segurança (Firestore & Storage)
+
+### Firestore Rules
+As regras de segurança estão em `firestore.rules`:
+
+| Operação | Permissão |
+|---|---|
+| **Leitura de ocorrências** | Qualquer usuário autenticado |
+| **Criar ocorrência** | Usuário autenticado (userId = auth.uid) |
+| **Atualizar ocorrência** | **Apenas o autor** da ocorrência (userId) **OU admin** (custom claims) |
+| **Deletar ocorrência** | **Apenas o autor** da ocorrência (userId) **OU admin** |
+
+#### Estados das ocorrências
+- **situacao** (editor pelo autor): `registrado` → `resolvido` ou `rejeitado`
+- **status** (unificado): `aberto` ↔ `resolvido`
+- Estados `em_verificacao`, `confirmado` reservados para moderação futura
+
+### Storage Rules
+As regras de segurança estão em `storage.rules`:
+
+| Caminho | Operação | Permissão |
+|---|---|---|
+| `fotos/{uid}/{file}` | Leitura | Usuário autenticado |
+| `fotos/{uid}/{file}` | Escrita | **Só o dono** (auth.uid == uid) |
+| `audios/{uid}/{file}` | Leitura | Usuário autenticado |
+| `audios/{uid}/{file}` | Escrita | **Só o dono** (auth.uid == uid) |
+
+#### Limites de tamanho
+- **Fotos:** ≤ 5 MB, tipo MIME `image/*`
+- **Áudios:** ≤ 2 MB, tipo MIME `audio/*`
+
+### Configuração de Admin (Custom Claims)
+Para habilitar o painel administrativo, configure Custom Claims no Firebase:
+
+```bash
+# Usando Firebase Admin SDK
+admin.auth().setCustomUserClaims(uid, { admin: true })
+```
+
+Isso permite que o usuário com UID especificado altere/remova ocorrências de outros usuários e acesse a coleção de moderação.
+
+## Funcionalidades de Administração
+
+### Painel Admin (`/admin`)
+- Listagem de todas as ocorrências
+- Alteração de estados: registrado, em verificação, confirmado, resolvido, rejeitado
+- Exclusão de ocorrências com limpeza automática de mídia
+- Acesso via navegação ou rota direta
+
+### Limpeza de mídia
+Ao excluir uma ocorrência via Admin, o sistema também remove:
+- Foto em `fotos/{uid}/{ocorrenciaId}.jpg`
+- Áudio em `audios/{uid}/{ocorrenciaId}.m4a`
 
 ## Como rodar
 
@@ -86,6 +142,29 @@ Abra o projeto no Android Studio → **File** → **Sync Project with Gradle Fil
 
 ### 3. Executar
 Compile e rode no emulador ou dispositivo físico.
+
+## Testes
+
+### Testes Unitários
+```bash
+# Rodar testes de modelo
+./gradlew testDebugUnitTest
+```
+
+Testa:
+- `OcorrenciaTest.kt` - validações de modelo e constantes
+- `UsuarioTest.kt` - verificação de isAdmin
+- `LocalizacaoServiceTest.kt` - validação de coordenadas
+
+### Testes de UI (Instrumented)
+```bash
+# Rodar testes de UI
+./gradlew connectedDebugAndroidTest
+```
+
+Testa:
+- `LoginFlowTest.kt` - fluxo de login/registro
+- `ValidationTest.kt` - validação de senha
 
 ## Stack
 Kotlin, Jetpack Compose, MapLibre (OpenStreetMap), CameraX, FusedLocation, Firebase (Auth, Firestore, Storage, Realtime DB), Google Sign-In
