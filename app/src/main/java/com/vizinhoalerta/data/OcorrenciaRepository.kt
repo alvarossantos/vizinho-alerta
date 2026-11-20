@@ -6,6 +6,7 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.storage.FirebaseStorage
 import com.vizinhoalerta.model.Ocorrencia
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
@@ -16,6 +17,11 @@ class OcorrenciaRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
     private val storage: FirebaseStorage = FirebaseStorage.getInstance()
 ) {
+
+    companion object {
+        private const val MAX_RETRIES = 3
+        private const val RETRY_DELAY_MS = 1000L
+    }
 
     suspend fun seedOcorrenciasDeTeste() {
         try {
@@ -108,8 +114,12 @@ class OcorrenciaRepository(
         }
     }
 
-    suspend fun inserir(ocorrencia: Ocorrencia, fotoFile: File? = null, audioFile: File? = null): Result<Unit> {
-        return try {
+    suspend fun inserir(
+        ocorrencia: Ocorrencia,
+        fotoFile: File? = null,
+        audioFile: File? = null
+    ): Result<Unit> {
+        return tryWithRetry {
             val id = UUID.randomUUID().toString()
             var fotoUrl = ocorrencia.fotoUrl
             var audioUrl = ocorrencia.audioUrl
@@ -138,20 +148,44 @@ class OcorrenciaRepository(
                 .await()
 
             Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
         }
     }
 
     suspend fun resolver(id: String): Result<Unit> {
-        return try {
+        return tryWithRetry {
             firestore.collection("ocorrencias")
                 .document(id)
                 .update("status", "resolvido")
                 .await()
             Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
+        }
+    }
+
+    /**
+     * Executa uma operação com retry exponencial em caso de falha de rede
+     */
+    private suspend fun <T> tryWithRetry(
+        operation: suspend () -> Result<T>,
+        maxRetries: Int = MAX_RETRIES,
+        delayMs: Long = RETRY_DELAY_MS
+    ): Result<T> {
+        var attempt = 0
+        var lastError: Exception? = null
+        
+        while (attempt < maxRetries) {
+            val result = operation()
+            if (result.isSuccess) {
+                return result
+            }
+            lastError = result.exceptionOrNull()
+            attempt++
+            if (attempt < maxRetries) {
+                delay(delayMs * attempt) // Retry exponencial
+            }
+        }
+        
+        return Result.failure(lastError!!).also { 
+            /* Log ou notificar se necessário */ 
         }
     }
 }
