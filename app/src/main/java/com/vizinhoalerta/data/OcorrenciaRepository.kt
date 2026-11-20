@@ -121,17 +121,18 @@ class OcorrenciaRepository(
     ): Result<Unit> {
         return tryWithRetry {
             val id = UUID.randomUUID().toString()
+            val userId = ocorrencia.userId
             var fotoUrl = ocorrencia.fotoUrl
             var audioUrl = ocorrencia.audioUrl
 
-            if (fotoFile != null && fotoFile.exists()) {
-                val fotoRef = storage.reference.child("fotos/$id.jpg")
+            if (fotoFile != null && fotoFile.exists() && userId.isNotBlank()) {
+                val fotoRef = storage.reference.child("fotos/$userId/$id.jpg")
                 fotoRef.putFile(Uri.fromFile(fotoFile)).await()
                 fotoUrl = fotoRef.downloadUrl.await().toString()
             }
 
-            if (audioFile != null && audioFile.exists()) {
-                val audioRef = storage.reference.child("audios/$id.m4a")
+            if (audioFile != null && audioFile.exists() && userId.isNotBlank()) {
+                val audioRef = storage.reference.child("audios/$userId/$id.m4a")
                 audioRef.putFile(Uri.fromFile(audioFile)).await()
                 audioUrl = audioRef.downloadUrl.await().toString()
             }
@@ -151,8 +152,9 @@ class OcorrenciaRepository(
         }
     }
 
-    suspend fun resolver(id: String): Result<Unit> {
+    suspend fun resolver(id: String, userId: String): Result<Unit> {
         return tryWithRetry {
+            // Deve ser chamado pelo autor
             firestore.collection("ocorrencias")
                 .document(id)
                 .update("status", "resolvido")

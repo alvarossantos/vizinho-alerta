@@ -1,15 +1,20 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    match /fotos/{file} {
+    // Fotos: isoladas por usuário
+    match /fotos/{uid}/{file} {
       allow read: if request.auth != null;
       allow write: if request.auth != null
+        && request.auth.uid == uid  // Só dono do arquivo
         && request.resource.size < 5 * 1024 * 1024 // 5MB
         && request.resource.contentType.matches('image/.*');
     }
-    match /audios/{file} {
+    
+    // Audios: isolados por usuário
+    match /audios/{uid}/{file} {
       allow read: if request.auth != null;
       allow write: if request.auth != null
+        && request.auth.uid == uid  // Só dono do arquivo
         && request.resource.size < 2 * 1024 * 1024 // 2MB
         && request.resource.contentType.matches('audio/.*');
     }
