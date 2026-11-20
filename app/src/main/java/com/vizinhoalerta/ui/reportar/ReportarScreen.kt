@@ -76,6 +76,10 @@ fun ReportarScreen(
     var enviando by remember { mutableStateOf(false) }
     var mensagemErro by remember { mutableStateOf<String?>(null) }
 
+    // Constantes de validação
+    val MAX_FOTO_SIZE = 5 * 1024 * 1024 // 5MB
+    val MAX_AUDIO_SIZE = 2 * 1024 * 1024 // 2MB
+
     // Pré-preenche cidade/bairro do usuário
     LaunchedEffect(Unit) {
         authRepository.currentUser?.uid?.let { uid ->
@@ -323,7 +327,29 @@ fun ReportarScreen(
 
             Button(
                 onClick = {
-                    val loc = localizacao ?: return@Button
+                    // Validações
+                    val loc = localizacao
+                    if (loc == null) {
+                        mensagemErro = "Por favor, defina a localização"
+                        return@Button
+                    }
+                    if (descricao.isBlank()) {
+                        mensagemErro = "Digite uma descrição"
+                        return@Button
+                    }
+                    if (cidade.isBlank() || bairro.isBlank()) {
+                        mensagemErro = "Preencha cidade e bairro"
+                        return@Button
+                    }
+                    
+                    // Validação tamanho foto
+                    if (fotoFile != null && fotoFile!!.exists()) {
+                        if (fotoFile!!.length() > MAX_FOTO_SIZE) {
+                            mensagemErro = "Foto muito grande (máx. 5MB)"
+                            return@Button
+                        }
+                    }
+
                     enviando = true
                     scope.launch {
                         val uid = authRepository.currentUser?.uid ?: ""
