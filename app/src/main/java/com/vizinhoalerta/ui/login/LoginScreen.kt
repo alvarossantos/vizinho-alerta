@@ -24,7 +24,8 @@ import kotlinx.coroutines.launch
 fun LoginScreen(
     authRepository: AuthRepository,
     onLoginSucesso: () -> Unit,
-    onCadastrarClick: () -> Unit
+    onCadastrarClick: () -> Unit,
+    modoDemo: Boolean = false
 ) {
     var email by remember { mutableStateOf("") }
     var senha by remember { mutableStateOf("") }
@@ -88,6 +89,10 @@ fun LoginScreen(
             ) {
                 if (carregando) CircularProgressIndicator(Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
                 else Text("ENTRAR", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            }
+            if (modoDemo) {
+                Spacer(Modifier.height(8.dp))
+                Text("Demo: admin@demo.com / Demo@123", fontSize = 12.sp)
             }
             Spacer(Modifier.height(8.dp))
             TextButton(onClick = onCadastrarClick) { Text("Não tem conta? Cadastrar") }

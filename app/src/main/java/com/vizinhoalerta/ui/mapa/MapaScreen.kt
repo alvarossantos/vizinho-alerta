@@ -75,7 +75,7 @@ fun MapaScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {
-                    if (authRepository.currentUser != null) {
+                    if (authRepository.currentUid != null) {
                         onNovaOcorrenciaClick()
                     }
                 },

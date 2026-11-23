@@ -24,7 +24,7 @@ fun PerfilScreen(
     var usuario by remember { mutableStateOf<Usuario?>(null) }
 
     LaunchedEffect(Unit) {
-        usuario = authRepository.getDadosUsuario(authRepository.currentUser?.uid ?: "")
+        usuario = authRepository.currentUid?.let { authRepository.getDadosUsuario(it) }
     }
 
     Scaffold(
