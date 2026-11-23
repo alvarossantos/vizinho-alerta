@@ -226,12 +226,12 @@ class OcorrenciaRepository(
     }
 
     suspend fun atualizarLocalizacao(id: String, lat: Double, lng: Double): Result<Unit> {
-        val perm = exigirPermissaoDemo(id)
-        if (perm.isFailure) return perm
         if (lat < -90.0 || lat > 90.0 || lng < -180.0 || lng > 180.0) {
             return Result.failure(Exception("Coordenadas fora da faixa válida."))
         }
         if (demo) {
+            val perm = exigirPermissaoDemo(id)
+            if (perm.isFailure) return perm
             val index = DemoData.ocorrencias.indexOfFirst { it.id == id }
             if (index < 0) return Result.failure(Exception("Ocorrência não encontrada"))
             DemoData.ocorrencias[index] = DemoData.ocorrencias[index].copy(lat = lat, lng = lng)

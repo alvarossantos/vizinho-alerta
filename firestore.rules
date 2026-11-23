@@ -59,6 +59,8 @@ service cloud.firestore {
             .hasOnly(['situacao', 'status', 'lat', 'lng'])
         && request.resource.data.situacao in ['registrado', 'em_verificacao', 'confirmado', 'resolvido', 'rejeitado']
         && request.resource.data.status in ['aberto', 'resolvido']
+        && request.resource.data.lat is number
+        && request.resource.data.lng is number
         && request.resource.data.lat >= -90.0 && request.resource.data.lat <= 90.0
         && request.resource.data.lng >= -180.0 && request.resource.data.lng <= 180.0;
 
