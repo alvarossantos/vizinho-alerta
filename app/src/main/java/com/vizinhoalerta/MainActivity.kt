@@ -103,7 +103,7 @@ private fun AppTheme(content: @Composable () -> Unit) {
 fun VizinhoAlertaApp(modo: BackendSelector.Mode) {
     val demo = modo == BackendSelector.Mode.DEMO
     val authRepository = remember(modo) { AuthRepository(demo = demo) }
-    val ocorrenciaRepository = remember(modo) { OcorrenciaRepository(demo = demo) }
+    val ocorrenciaRepository = remember(modo) { OcorrenciaRepository(demo = demo, authRepository = authRepository) }
     val navController = rememberNavController()
     val startDestination = remember {
         if (authRepository.currentUid != null) "mapa" else "welcome"
@@ -202,6 +202,7 @@ fun VizinhoAlertaApp(modo: BackendSelector.Mode) {
             DetalhesScreen(
                 ocorrenciaId = id,
                 ocorrenciaRepository = ocorrenciaRepository,
+                authRepository = authRepository,
                 onVoltar = { navController.popBackStack() }
             )
         }

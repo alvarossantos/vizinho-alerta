@@ -16,6 +16,7 @@ import java.util.UUID
 
 class OcorrenciaRepository(
     private val demo: Boolean = false,
+    private val authRepository: AuthRepository? = null,
     private val firestore: FirebaseFirestore? = if (demo) null else FirebaseFirestore.getInstance(),
     private val storage: FirebaseStorage? = if (demo) null else FirebaseStorage.getInstance()
 ) {
@@ -98,6 +99,18 @@ class OcorrenciaRepository(
         }
     }
 
+    private fun exigirPermissaoDemo(id: String): Result<Unit> {
+        val index = DemoData.ocorrencias.indexOfFirst { it.id == id }
+        if (index < 0) return Result.failure(Exception("Ocorrência não encontrada"))
+        val ocorrencia = DemoData.ocorrencias[index]
+        val uid = authRepository?.currentUid
+        val admin = DemoData.usuarios.firstOrNull { it.id == uid }?.isAdmin == true
+        if (uid == null || (ocorrencia.userId != uid && !admin)) {
+            return Result.failure(Exception("Você não tem permissão para alterar esta ocorrência."))
+        }
+        return Result.success(Unit)
+    }
+
     suspend fun listar(): Result<List<Ocorrencia>> {
         if (demo) return Result.success(DemoData.ocorrencias.toList())
         return try {
@@ -167,7 +180,11 @@ class OcorrenciaRepository(
     }
 
     suspend fun resolver(id: String, userId: String): Result<Unit> {
-        if (demo) return atualizarDemo(id) { it.copy(situacao = "resolvido", status = "resolvido") }
+        if (demo) {
+            val perm = exigirPermissaoDemo(id)
+            if (perm.isFailure) return perm
+            return atualizarDemo(id) { it.copy(situacao = "resolvido", status = "resolvido") }
+        }
         return tryWithRetry {
             // Deve ser chamado pelo autor - atualiza status e situacao juntos
             firestore!!.collection("ocorrencias")
@@ -179,7 +196,11 @@ class OcorrenciaRepository(
     }
 
     suspend fun atualizarSituacao(id: String, situacao: String): Result<Unit> {
-        if (demo) return atualizarDemo(id) { it.copy(situacao = situacao) }
+        if (demo) {
+            val perm = exigirPermissaoDemo(id)
+            if (perm.isFailure) return perm
+            return atualizarDemo(id) { it.copy(situacao = situacao) }
+        }
         return tryWithRetry {
             firestore!!.collection("ocorrencias")
                 .document(id)
@@ -190,7 +211,11 @@ class OcorrenciaRepository(
     }
 
     suspend fun atualizarSituacaoComStatus(id: String, situacao: String, status: String): Result<Unit> {
-        if (demo) return atualizarDemo(id) { it.copy(situacao = situacao, status = status) }
+        if (demo) {
+            val perm = exigirPermissaoDemo(id)
+            if (perm.isFailure) return perm
+            return atualizarDemo(id) { it.copy(situacao = situacao, status = status) }
+        }
         return tryWithRetry {
             firestore!!.collection("ocorrencias")
                 .document(id)
@@ -200,8 +225,31 @@ class OcorrenciaRepository(
         }
     }
 
+    suspend fun atualizarLocalizacao(id: String, lat: Double, lng: Double): Result<Unit> {
+        if (lat < -90.0 || lat > 90.0 || lng < -180.0 || lng > 180.0) {
+            return Result.failure(Exception("Coordenadas fora da faixa válida."))
+        }
+        if (demo) {
+            val perm = exigirPermissaoDemo(id)
+            if (perm.isFailure) return perm
+            val index = DemoData.ocorrencias.indexOfFirst { it.id == id }
+            if (index < 0) return Result.failure(Exception("Ocorrência não encontrada"))
+            DemoData.ocorrencias[index] = DemoData.ocorrencias[index].copy(lat = lat, lng = lng)
+            return Result.success(Unit)
+        }
+        return tryWithRetry {
+            firestore!!.collection("ocorrencias")
+                .document(id)
+                .update("lat", lat, "lng", lng)
+                .await()
+            Result.success(Unit)
+        }
+    }
+
     suspend fun deletar(id: String): Result<Unit> {
         if (demo) {
+            val perm = exigirPermissaoDemo(id)
+            if (perm.isFailure) return perm
             val index = DemoData.ocorrencias.indexOfFirst { it.id == id }
             if (index < 0) return Result.failure(Exception("Ocorrência não encontrada"))
             DemoData.ocorrencias.removeAt(index)
@@ -220,7 +268,11 @@ class OcorrenciaRepository(
      * Deleta uma ocorrência e seus arquivos de mídia associados
      */
     suspend fun deletarComMidia(ocorrenciaId: String): Result<Unit> {
-        if (demo) return deletar(ocorrenciaId)
+        if (demo) {
+            val perm = exigirPermissaoDemo(ocorrenciaId)
+            if (perm.isFailure) return perm
+            return deletar(ocorrenciaId)
+        }
         return tryWithRetry {
             // Primeiro, obter a ocorrência para pegar os URLs de mídia
             val doc = firestore!!.collection("ocorrencias").document(ocorrenciaId).get().await()

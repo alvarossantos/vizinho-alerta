@@ -10,6 +10,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
+import com.vizinhoalerta.data.AuthRepository
 import com.vizinhoalerta.data.OcorrenciaRepository
 import com.vizinhoalerta.model.Ocorrencia
 import com.vizinhoalerta.service.AudioService
@@ -33,6 +36,7 @@ import org.maplibre.android.MapLibre
 import org.maplibre.android.WellKnownTileServer
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.camera.CameraPosition
+import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import org.maplibre.android.annotations.MarkerOptions
@@ -45,19 +49,30 @@ import java.util.Locale
 fun DetalhesScreen(
     ocorrenciaId: String,
     ocorrenciaRepository: OcorrenciaRepository,
+    authRepository: AuthRepository,
     onVoltar: () -> Unit
 ) {
     var ocorrencia by remember { mutableStateOf<Ocorrencia?>(null) }
     var carregando by remember { mutableStateOf(true) }
     var atualizandoStatus by remember { mutableStateOf(false) }
     var reproduzindoAudio by remember { mutableStateOf(false) }
+    var podeGerenciar by remember { mutableStateOf(false) }
+    var editandoLocalizacao by remember { mutableStateOf(false) }
+    var posicaoSelecionada by remember { mutableStateOf<LatLng?>(null) }
+    var salvandoLocalizacao by remember { mutableStateOf(false) }
+    var mensagemErro by remember { mutableStateOf<String?>(null) }
 
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(ocorrenciaId) {
         carregando = true
-        ocorrencia = ocorrenciaRepository.obterPorId(ocorrenciaId)
+        editandoLocalizacao = false
+        posicaoSelecionada = null
+        mensagemErro = null
+        val oCarregado = ocorrenciaRepository.obterPorId(ocorrenciaId)
+        ocorrencia = oCarregado
         carregando = false
+        podeGerenciar = oCarregado?.userId == authRepository.currentUid || authRepository.isAdmin()
     }
 
     DisposableEffect(Unit) {
@@ -264,7 +279,7 @@ fun DetalhesScreen(
                     }
 
                     // Mapa
-                    if (o.lat != 0.0 && o.lng != 0.0) {
+                    if (o.lat != 0.0 && o.lng != 0.0 || editandoLocalizacao) {
                         Column {
                             Text(
                                 text = "Localização no Mapa",
@@ -272,13 +287,20 @@ fun DetalhesScreen(
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(8.dp))
-                            val pos = LatLng(o.lat, o.lng)
+                            val pos = posicaoSelecionada ?: if (o.lat != 0.0 && o.lng != 0.0) {
+                                LatLng(o.lat, o.lng)
+                            } else {
+                                LatLng(-23.55052, -46.633308)
+                            }
                             val context = LocalContext.current
                             val lifecycleOwner = LocalLifecycleOwner.current
                             val mapView = remember {
                                 MapLibre.getInstance(context, null, WellKnownTileServer.MapLibre)
                                 MapView(context).apply { onCreate(null) }
                             }
+                            val editandoAtual by rememberUpdatedState(editandoLocalizacao)
+                            val posAtual by rememberUpdatedState(pos)
+                            var mapAtual by remember { mutableStateOf<MapLibreMap?>(null) }
 
                             DisposableEffect(lifecycleOwner) {
                                 val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
@@ -308,20 +330,46 @@ fun DetalhesScreen(
                                     factory = { mapView },
                                     modifier = Modifier.fillMaxSize()
                                 ) { view ->
-                                    view.getMapAsync { map ->
-                                        map.setStyle(Style.Builder().fromJson(MapaEstilo.OSM)) { _ ->
-                                            map.clear()
-                                            map.addMarker(MarkerOptions().position(pos).title(o.tipo))
-                                            map.cameraPosition = CameraPosition.Builder().target(pos).zoom(15.0).build()
-                                        }
+                                    view.getMapAsync { mapReady ->
+                                        mapAtual = mapReady
                                     }
+                                }
+                            }
+
+                            DisposableEffect(mapAtual) {
+                                val map = mapAtual
+                                val listener = MapLibreMap.OnMapClickListener { point ->
+                                    if (editandoAtual) {
+                                        posicaoSelecionada = point
+                                    }
+                                    true
+                                }
+                                if (map != null) {
+                                    map.setStyle(Style.Builder().fromJson(MapaEstilo.OSM)) { _ ->
+                                        map.clear()
+                                        map.addMarker(MarkerOptions().position(posAtual).title(o.tipo))
+                                        map.setCameraPosition(CameraPosition.Builder().target(posAtual).zoom(15.0).build())
+                                    }
+                                    map.addOnMapClickListener(listener)
+                                }
+                                onDispose {
+                                    map?.removeOnMapClickListener(listener)
+                                }
+                            }
+
+                            LaunchedEffect(pos) {
+                                val map = mapAtual
+                                if (map != null) {
+                                    map.clear()
+                                    map.addMarker(MarkerOptions().position(pos).title(o.tipo))
+                                    map.setCameraPosition(CameraPosition.Builder().target(pos).zoom(15.0).build())
                                 }
                             }
                         }
                     }
 
                     // Botão para Marcar como Resolvido
-                    if (!isResolvido) {
+                    if (podeGerenciar && !isResolvido) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
                             onClick = {
@@ -353,6 +401,93 @@ fun DetalhesScreen(
                                 Text("MARCAR COMO RESOLVIDO", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                             }
                         }
+                    }
+
+                    // Ações de gestão: exclusão (somente para quem pode gerenciar)
+                    if (podeGerenciar) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = {
+                                mensagemErro = null
+                                scope.launch {
+                                    val res = ocorrenciaRepository.deletarComMidia(o.id)
+                                    res.onSuccess { onVoltar() }
+                                    res.onFailure { mensagemErro = it.message ?: "Não foi possível excluir a ocorrência." }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(50.dp)
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("EXCLUIR", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    // Alterar localização
+                    if (podeGerenciar && !editandoLocalizacao) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { editandoLocalizacao = true },
+                            modifier = Modifier.fillMaxWidth().height(50.dp)
+                        ) {
+                            Icon(Icons.Default.LocationOn, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("ALTERAR LOCALIZAÇÃO", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
+                    } else if (podeGerenciar && editandoLocalizacao) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        if (o.lat == 0.0 && o.lng == 0.0 && posicaoSelecionada == null) {
+                            Text(
+                                text = "Toque no mapa para escolher o ponto.",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                        Button(
+                            onClick = {
+                                mensagemErro = null
+                                val latLng = posicaoSelecionada ?: LatLng(o.lat, o.lng)
+                                salvandoLocalizacao = true
+                                scope.launch {
+                                    val res = ocorrenciaRepository.atualizarLocalizacao(
+                                        o.id,
+                                        latLng.latitude,
+                                        latLng.longitude
+                                    )
+                                    salvandoLocalizacao = false
+                                    res.onSuccess {
+                                        ocorrencia = o.copy(lat = latLng.latitude, lng = latLng.longitude)
+                                        posicaoSelecionada = null
+                                        editandoLocalizacao = false
+                                    }
+                                    res.onFailure { mensagemErro = it.message ?: "Não foi possível salvar a localização." }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            enabled = !salvandoLocalizacao && !(o.lat == 0.0 && o.lng == 0.0 && posicaoSelecionada == null)
+                        ) {
+                            if (salvandoLocalizacao) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            } else {
+                                Icon(Icons.Default.CheckCircle, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("SALVAR LOCALIZAÇÃO", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = {
+                                editandoLocalizacao = false
+                                posicaoSelecionada = null
+                            },
+                            modifier = Modifier.fillMaxWidth().height(50.dp)
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("CANCELAR", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    mensagemErro?.let {
+                        Text(text = it, color = MaterialTheme.colorScheme.error)
                     }
                 }
             }
