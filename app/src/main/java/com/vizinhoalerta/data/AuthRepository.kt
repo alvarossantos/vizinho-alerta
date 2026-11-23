@@ -8,6 +8,26 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.vizinhoalerta.model.Usuario
 import kotlinx.coroutines.tasks.await
 
+internal fun formatAuthException(e: Exception): String {
+    val message = e.message ?: ""
+    return when {
+        message.contains("The email address is badly formatted", ignoreCase = true) ->
+            "O formato do e-mail é inválido. Verifique se há espaços ou erros."
+        message.contains("Password should be at least", ignoreCase = true) || message.contains("weak-password", ignoreCase = true) ->
+            "A senha deve conter no mínimo 8 caracteres, letra maiúscula, número e caractere especial."
+        message.contains("email-already-in-use", ignoreCase = true) || message.contains("already in use", ignoreCase = true) ->
+            "Este e-mail já está cadastrado."
+        message.contains("user-not-found", ignoreCase = true) || message.contains("no user record", ignoreCase = true) ->
+            "Usuário não encontrado. Verifique o e-mail digitado."
+        message.contains("wrong-password", ignoreCase = true) || message.contains("invalid-credential", ignoreCase = true) ||
+            message.contains("The password is invalid", ignoreCase = true) ->
+            "E-mail ou senha incorretos."
+        message.contains("PERMISSION_DENIED", ignoreCase = true) || message.contains("Cloud Firestore", ignoreCase = true) ->
+            "Erro de permissão no Firestore. Verifique se o Cloud Firestore está criado e ativado no console do Firebase."
+        else -> e.localizedMessage ?: message.ifBlank { "Ocorreu um erro na autenticação." }
+    }
+}
+
 class AuthRepository(
     private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
@@ -221,22 +241,5 @@ class AuthRepository(
         auth.signOut()
     }
 
-    private fun formatAuthException(e: Exception): String {
-        val message = e.message ?: ""
-        return when {
-            message.contains("The email address is badly formatted", ignoreCase = true) ->
-                "O formato do e-mail é inválido. Verifique se há espaços ou erros."
-            message.contains("Password should be at least", ignoreCase = true) || message.contains("weak-password", ignoreCase = true) ->
-                "A senha deve conter no mínimo 8 caracteres, letra maiúscula, número e caractere especial."
-            message.contains("email-already-in-use", ignoreCase = true) || message.contains("already in use", ignoreCase = true) ->
-                "Este e-mail já está cadastrado."
-            message.contains("user-not-found", ignoreCase = true) || message.contains("no user record", ignoreCase = true) ->
-                "Usuário não encontrado. Verifique o e-mail digitado."
-            message.contains("wrong-password", ignoreCase = true) || message.contains("invalid-credential", ignoreCase = true) ->
-                "E-mail ou senha incorretos."
-            message.contains("PERMISSION_DENIED", ignoreCase = true) || message.contains("Cloud Firestore", ignoreCase = true) ->
-                "Erro de permissão no Firestore. Verifique se o Cloud Firestore está criado e ativado no console do Firebase."
-            else -> e.localizedMessage ?: message.ifBlank { "Ocorreu um erro na autenticação." }
-        }
-    }
+    private fun formatAuthException(e: Exception): String = com.vizinhoalerta.data.formatAuthException(e)
 }
