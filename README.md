@@ -79,7 +79,8 @@ Capturas do app rodando no emulador Android 14 (1080×2280).
 | <img src="docs/screenshots/10-cadastro.png" alt="Cadastro" width="240"> **Cadastro** | <img src="docs/screenshots/03-mapa.png" alt="Mapa" width="240"> **Mapa** |
 | <img src="docs/screenshots/04-reportar.png" alt="Nova ocorrência" width="240"> **Nova ocorrência** | <img src="docs/screenshots/05-reportar-midia.png" alt="Mídia e envio" width="240"> **Mídia e envio** |
 | <img src="docs/screenshots/06-lista.png" alt="Lista" width="240"> **Lista** | <img src="docs/screenshots/07-detalhes.png" alt="Detalhes" width="240"> **Detalhes** |
-| <img src="docs/screenshots/01-perfil.png" alt="Perfil" width="240"> **Perfil** | <img src="docs/screenshots/02-admin.png" alt="Painel Admin" width="240"> **Painel Admin** |
+| <img src="docs/screenshots/01-perfil.png" alt="Perfil" width="240"> **Perfil (admin)** | <img src="docs/screenshots/02-admin.png" alt="Painel Admin" width="240"> **Admin — ocorrências** |
+| <img src="docs/screenshots/08-admin-usuarios.png" alt="Admin — usuários" width="240"> **Admin — usuários** | |
 
 ## Regras de Segurança (Firestore & Storage)
 
@@ -90,7 +91,7 @@ As regras de segurança estão em `firestore.rules`:
 |---|---|
 | **Leitura de ocorrências** | Qualquer usuário autenticado |
 | **Criar ocorrência** | Usuário autenticado (userId = auth.uid) |
-| **Atualizar ocorrência** | **Apenas o autor** da ocorrência (userId) **OU admin** (custom claims) |
+| **Atualizar ocorrência** | **Apenas o autor** da ocorrência (userId) **OU admin** (custom claim `admin` ou `role: "admin"`) |
 | **Deletar ocorrência** | **Apenas o autor** da ocorrência (userId) **OU admin** |
 
 #### Estados das ocorrências
@@ -120,15 +121,16 @@ Para habilitar o painel administrativo, configure Custom Claims no Firebase:
 admin.auth().setCustomUserClaims(uid, { admin: true })
 ```
 
-Isso permite que o usuário com UID especificado altere/remova ocorrências de outros usuários e acesse a coleção de moderação.
+Isso permite que o usuário com UID especificado altere/remova ocorrências de outros usuários e acesse a coleção de moderação. Também é possível ser admin pelo campo `role: "admin"` no documento `usuarios/{uid}`; as regras impedem que o próprio usuário altere esse campo para se promover.
 
 ## Funcionalidades de Administração
 
 ### Painel Admin (`/admin`)
-- Listagem de todas as ocorrências
+- Abas **Ocorrências** e **Usuários**
+- Listagem de todas as ocorrências (todas as situações, inclusive rejeitado) e de todos os usuários (nome, e-mail e função)
 - Alteração de estados: registrado, em verificação, confirmado, resolvido, rejeitado
 - Exclusão de ocorrências com limpeza automática de mídia
-- Acesso via navegação ou rota direta
+- Acesso restrito a administradores, via Perfil → **Painel Admin**
 
 ### Limpeza de mídia
 Ao excluir uma ocorrência via Admin, o sistema também remove:
@@ -139,6 +141,9 @@ Ao excluir uma ocorrência via Admin, o sistema também remove:
 
 ### google-services.json (protótipo)
 Se você não tiver um `google-services.json` próprio, não precisa fornecer nada: o build gera `app/google-services.json` automaticamente a partir do template `app/google-services.example.json` (com chave fictícia `DUMMY`). Isso basta para rodar o **debug**, que aponta para os emuladores locais (Auth `9099`, Firestore `8081`, Storage `9199`).
+
+> [!IMPORTANT]
+> **Modo demo (somente debug):** sem `app/google-services.json` real **ou** sem os emuladores locais rodando, o app detecta a ausência do Firebase e entra automaticamente no **modo demo**. Entre com `admin@demo.com` / `Demo@123` (ou `morador@demo.com` / `Demo@123`). O demo tem 5 ocorrências em Cássia/Passos e usuários de exemplo; tudo fica **apenas em memória** — ao fechar o app, volta ao padrão do repositório. A build de **release nunca** usa demo e exige Firebase real.
 
 Para gerar um release, substitua o arquivo pelo `google-services.json` real do seu projeto Firebase. Se a chave fictícia ainda estiver presente, o build falha com a mensagem: `Release exige um google-services.json real (sem DUMMY)`.
 
