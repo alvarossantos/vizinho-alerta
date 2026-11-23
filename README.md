@@ -143,7 +143,7 @@ Ao excluir uma ocorrência via Admin, o sistema também remove:
 Se você não tiver um `google-services.json` próprio, não precisa fornecer nada: o build gera `app/google-services.json` automaticamente a partir do template `app/google-services.example.json` (com chave fictícia `DUMMY`). Isso basta para rodar o **debug**, que aponta para os emuladores locais (Auth `9099`, Firestore `8081`, Storage `9199`).
 
 > [!IMPORTANT]
-> **Modo demo (somente debug):** sem `app/google-services.json` real **ou** sem os emuladores locais rodando, o app detecta a ausência do Firebase e entra automaticamente no **modo demo**. Entre com `admin@demo.com` / `Demo@123` (ou `morador@demo.com` / `Demo@123`). O demo tem 5 ocorrências em Cássia/Passos e usuários de exemplo; tudo fica **apenas em memória** — ao fechar o app, volta ao padrão do repositório. A build de **release nunca** usa demo e exige Firebase real.
+> **Modo demo (somente debug):** sem `app/google-services.json` real **ou** sem os emuladores locais rodando, o app detecta a ausência do Firebase e entra automaticamente no **modo demo**. Entre com `admin@demo.com` / `Demo@123` (ou `morador@demo.com` / `Demo@123`). O demo tem 5 ocorrências em Cássia/Passos e usuários de exemplo; tudo fica **apenas em memória** — ao tocar em **Sair** ou encerrar o app, volta ao padrão do repositório. A build de **release nunca** usa demo e exige Firebase real.
 
 Para gerar um release, substitua o arquivo pelo `google-services.json` real do seu projeto Firebase. Se a chave fictícia ainda estiver presente, o build falha com a mensagem: `Release exige um google-services.json real (sem DUMMY)`.
 

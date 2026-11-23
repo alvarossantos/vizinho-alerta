@@ -32,4 +32,33 @@ class AuthRepositoryDemoTest {
         assertTrue(repo.atualizarPerfil("Admin Novo", "@admin2", "", "", "Passos", "Centro").isSuccess)
         assertEquals("Passos", repo.getDadosUsuario("demo-admin")?.cidade)
     }
+
+    @Test fun `logout demo restaura dados padrao`() = runBlocking {
+        repo.login(DemoData.ADMIN_EMAIL, DemoData.SENHA_DEMO)
+        assertTrue(repo.atualizarPerfil("Admin Novo", "@admin2", "", "", "Passos", "Centro").isSuccess)
+
+        repo.logout()
+
+        assertEquals(null, repo.currentUid)
+        val admin = repo.getDadosUsuario("demo-admin")
+        assertEquals("Admin Demo", admin?.nome)
+        assertEquals("Cássia", admin?.cidade)
+        assertEquals(2, repo.listarUsuarios().size)
+    }
+
+    @Test fun `username disponivel permite edicao`() {
+        assertEquals(null, erroDisponibilidadeUsername(true, "@novo"))
+    }
+
+    @Test fun `username duplicado e rejeitado na edicao`() {
+        assertEquals(
+            "Este username (@morador) já está em uso por outro usuário.",
+            erroDisponibilidadeUsername(false, "@morador")
+        )
+    }
+
+    @Test fun `falha ao consultar username nao e tratada como disponivel`() {
+        val erro = erroDisponibilidadeUsername(null, "@novo")
+        assertTrue(erro != null && erro.contains("Não foi possível validar"))
+    }
 }

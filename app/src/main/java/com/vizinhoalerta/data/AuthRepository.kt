@@ -28,6 +28,12 @@ internal fun formatAuthException(e: Exception): String {
     }
 }
 
+internal fun erroDisponibilidadeUsername(disponivel: Boolean?, username: String): String? = when (disponivel) {
+    true -> null
+    false -> "Este username ($username) já está em uso por outro usuário."
+    null -> "Não foi possível validar a disponibilidade do username. Tente novamente."
+}
+
 class AuthRepository(
     private val demo: Boolean = false,
     private val auth: FirebaseAuth? = if (demo) null else FirebaseAuth.getInstance(),
@@ -103,7 +109,8 @@ class AuthRepository(
         return null
     }
 
-    suspend fun isUsernameDisponivel(username: String, currentUid: String? = null): Boolean {
+    /** `null` = não foi possível consultar; chamadores devem falhar fechado quando a identidade é editável. */
+    suspend fun isUsernameDisponivel(username: String, currentUid: String? = null): Boolean? {
         val cleanUsername = normalizarUsername(username)
         if (demo) {
             return DemoData.usuarios.none {
@@ -122,7 +129,7 @@ class AuthRepository(
             }
             false
         } catch (e: Exception) {
-            true
+            null
         }
     }
 
@@ -146,7 +153,7 @@ class AuthRepository(
             }
             val base = "@" + emailTrimmed.substringBefore("@").lowercase().replace(Regex("[^a-z0-9]"), "")
             var username = base + (100..999).random()
-            while (!isUsernameDisponivel(username)) {
+            while (isUsernameDisponivel(username) != true) {
                 username = base + (1000..9999).random()
             }
             val usuario = Usuario(
@@ -169,7 +176,7 @@ class AuthRepository(
             // Gera username único
             val baseUsername = "@" + emailTrimmed.substringBefore("@").lowercase().replace(Regex("[^a-z0-9]"), "")
             var username = baseUsername + (100..999).random()
-            while (!isUsernameDisponivel(username)) {
+            while (isUsernameDisponivel(username) != true) {
                 username = baseUsername + (1000..9999).random()
             }
 
@@ -220,7 +227,7 @@ class AuthRepository(
                 val nomeUser = user.displayName ?: "Morador"
                 val emailUser = user.email ?: ""
                 var username = "@" + emailUser.substringBefore("@").lowercase().replace(Regex("[^a-z0-9]"), "") + (100..999).random()
-                while (!isUsernameDisponivel(username)) {
+                while (isUsernameDisponivel(username) != true) {
                     username = "@" + emailUser.substringBefore("@").lowercase().replace(Regex("[^a-z0-9]"), "") + (1000..9999).random()
                 }
                 val usuario = Usuario(
@@ -249,9 +256,8 @@ class AuthRepository(
         if (demo) {
             val uid = demoUid ?: return Result.failure(Exception("Usuário não logado"))
             val cleanUsername = normalizarUsername(username)
-            if (!isUsernameDisponivel(cleanUsername, uid)) {
-                return Result.failure(Exception("Este username ($cleanUsername) já está em uso por outro usuário."))
-            }
+            erroDisponibilidadeUsername(isUsernameDisponivel(cleanUsername, uid), cleanUsername)
+                ?.let { return Result.failure(Exception(it)) }
             val index = DemoData.usuarios.indexOfFirst { it.id == uid }
             if (index < 0) return Result.failure(Exception("Usuário não encontrado"))
             val anterior = DemoData.usuarios[index]
@@ -269,10 +275,8 @@ class AuthRepository(
             val user = auth?.currentUser ?: return Result.failure(Exception("Usuário não logado"))
 
             val cleanUsername = normalizarUsername(username)
-            val disponivel = isUsernameDisponivel(cleanUsername, user.uid)
-            if (!disponivel) {
-                return Result.failure(Exception("Este username ($cleanUsername) já está em uso por outro usuário."))
-            }
+            erroDisponibilidadeUsername(isUsernameDisponivel(cleanUsername, user.uid), cleanUsername)
+                ?.let { return Result.failure(Exception(it)) }
 
             val profileUpdates = userProfileChangeRequest {
                 displayName = nome.trim()
@@ -353,7 +357,10 @@ class AuthRepository(
     }
 
     fun logout() {
-        if (demo) demoUid = null else auth?.signOut()
+        if (demo) {
+            demoUid = null
+            DemoData.reset()
+        } else auth?.signOut()
     }
 
     private fun normalizarUsername(username: String): String =
