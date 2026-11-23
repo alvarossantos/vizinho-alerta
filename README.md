@@ -162,6 +162,16 @@ Abra o projeto no Android Studio → **File** → **Sync Project with Gradle Fil
 ### 3. Executar
 Compile e rode no emulador ou dispositivo físico.
 
+### 4. Dados simulados (emulador)
+
+Com os emuladores locais de Auth/Firestore rodando, popular o app com o usuário de teste e 4 ocorrências em Cássia/MG e Passos/MG:
+
+```bash
+python3 scripts/seed_emulador.py
+```
+
+O script é idempotente (IDs fixos) e pode ser executado novamente após reiniciar os emuladores. Login: `teste@exemplo.com` / `Teste@123`.
+
 ## Testes
 
 ### Testes Unitários
