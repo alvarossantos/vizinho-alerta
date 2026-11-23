@@ -45,14 +45,16 @@ service cloud.firestore {
       allow update: if request.auth != null
         && resource.data.userId == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['situacao', 'status'])
+            .hasOnly(['situacao', 'status', 'lat', 'lng'])
         && request.resource.data.situacao in ['registrado', 'resolvido', 'rejeitado']
-        && request.resource.data.status in ['aberto', 'resolvido'];
+        && request.resource.data.status in ['aberto', 'resolvido']
+        && request.resource.data.lat is number
+        && request.resource.data.lng is number;
 
       // Atualização ADMIN: ADMIN pode mudar qualquer situacao
       allow update: if isAdmin()
         && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['situacao', 'status'])
+            .hasOnly(['situacao', 'status', 'lat', 'lng'])
         && request.resource.data.situacao in ['registrado', 'em_verificacao', 'confirmado', 'resolvido', 'rejeitado']
         && request.resource.data.status in ['aberto', 'resolvido'];
 
