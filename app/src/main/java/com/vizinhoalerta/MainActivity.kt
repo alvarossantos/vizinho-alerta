@@ -70,7 +70,8 @@ class MainActivity : ComponentActivity() {
         }
 
         lifecycleScope.launch {
-            val modo = BackendSelector.detectar()
+            val configReal = !getString(R.string.google_api_key).contains("DUMMY", ignoreCase = true)
+            val modo = BackendSelector.detectar(configReal = configReal)
             setContent {
                 AppTheme { VizinhoAlertaApp(modo = modo) }
             }

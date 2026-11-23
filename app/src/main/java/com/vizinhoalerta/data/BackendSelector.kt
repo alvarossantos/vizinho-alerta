@@ -14,9 +14,13 @@ object BackendSelector {
 
     suspend fun detectar(
         debug: Boolean = BuildConfig.DEBUG,
+        configReal: Boolean = true,
         probe: suspend () -> Unit = { probeFirestore() }
     ): Mode {
         if (!debug) return Mode.FIREBASE
+        // Config fictícia aponta para um projeto que responde PERMISSION_DENIED pela internet;
+        // isso não é backend disponível para o protótipo.
+        if (!configReal) return Mode.DEMO
         return try {
             withTimeout(4_000L) { probe() }
             Mode.FIREBASE
