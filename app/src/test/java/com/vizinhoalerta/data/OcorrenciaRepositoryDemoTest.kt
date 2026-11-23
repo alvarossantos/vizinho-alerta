@@ -59,6 +59,7 @@ class OcorrenciaRepositoryDemoTest {
         assertTrue(repo.atualizarLocalizacao("cassia_1", 91.0, -46.9).isFailure)
         assertTrue(repo.atualizarLocalizacao("cassia_1", -20.0, -181.0).isFailure)
         assertEquals(antes.lat, repo.obterPorId("cassia_1")!!.lat, 0.0)
+        assertEquals(antes.lng, repo.obterPorId("cassia_1")!!.lng, 0.0)
     }
 
     @Test fun `sem authRepository o repositorio nega`() = runBlocking {
