@@ -48,6 +48,48 @@ android {
     }
 }
 
+// Protótipo: se o testador não tiver google-services.json próprio, usamos um template
+// fictício apontado para os emuladores locais. O arquivo real continua gitignored.
+val googleServicesTemplateName = "google-services.example.json"
+
+tasks.register("ensureGoogleServices") {
+    onlyIf { !file("google-services.json").exists() }
+    doLast {
+        val template = file(googleServicesTemplateName)
+        val target = file("google-services.json")
+        if (!template.exists()) {
+            throw GradleException("Template $googleServicesTemplateName não encontrado em ${template.parentFile}")
+        }
+        if (!target.exists()) {
+            template.copyTo(target, overwrite = false)
+            logger.lifecycle("[google-services] Arquivo próprio ausente: usando template fictício ($googleServicesTemplateName) para o protótipo/debug.")
+        }
+    }
+}
+
+tasks.named("preBuild") {
+    dependsOn("ensureGoogleServices")
+}
+
+// O plugin google-services lê o JSON em tarefas próprias, fora do grafo do preBuild.
+tasks.matching { it.name.startsWith("process") && it.name.endsWith("GoogleServices") }.configureEach {
+    dependsOn("ensureGoogleServices")
+}
+
+tasks.register("checkReleaseGoogleServices") {
+    dependsOn("ensureGoogleServices")
+    doLast {
+        val target = file("google-services.json")
+        if (target.exists() && target.readText().contains("DUMMY", ignoreCase = true)) {
+            throw GradleException("Release exige um google-services.json real (sem DUMMY)")
+        }
+    }
+}
+
+tasks.matching { it.name == "preReleaseBuild" }.configureEach {
+    dependsOn("checkReleaseGoogleServices")
+}
+
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.3")

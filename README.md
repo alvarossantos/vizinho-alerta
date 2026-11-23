@@ -137,6 +137,13 @@ Ao excluir uma ocorrência via Admin, o sistema também remove:
 
 ## Como rodar
 
+### google-services.json (protótipo)
+Se você não tiver um `google-services.json` próprio, não precisa fornecer nada: o build gera `app/google-services.json` automaticamente a partir do template `app/google-services.example.json` (com chave fictícia `DUMMY`). Isso basta para rodar o **debug**, que aponta para os emuladores locais (Auth `9099`, Firestore `8081`, Storage `9199`).
+
+Para gerar um release, substitua o arquivo pelo `google-services.json` real do seu projeto Firebase. Se a chave fictícia ainda estiver presente, o build falha com a mensagem: `Release exige um google-services.json real (sem DUMMY)`.
+
+> O `app/google-services.json` gerado é gitignored: nunca commite o arquivo com chave, real ou fictícia.
+
 ### 1. Firebase (gratuito)
 1. Acesse https://console.firebase.google.com
 2. Crie um projeto chamado `vizinho-alerta`
