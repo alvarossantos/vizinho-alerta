@@ -202,6 +202,7 @@ fun VizinhoAlertaApp(modo: BackendSelector.Mode) {
             DetalhesScreen(
                 ocorrenciaId = id,
                 ocorrenciaRepository = ocorrenciaRepository,
+                authRepository = authRepository,
                 onVoltar = { navController.popBackStack() }
             )
         }
