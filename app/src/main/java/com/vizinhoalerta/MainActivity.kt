@@ -20,6 +20,7 @@ import androidx.navigation.navArgument
 import com.vizinhoalerta.data.AuthRepository
 import com.vizinhoalerta.data.OcorrenciaRepository
 import com.vizinhoalerta.ui.admin.AdminScreen
+import com.vizinhoalerta.ui.cadastro.CadastroScreen
 import com.vizinhoalerta.ui.detalhes.DetalhesScreen
 import com.vizinhoalerta.ui.lista.OcorrenciasListScreen
 import com.vizinhoalerta.ui.login.LoginScreen
@@ -91,7 +92,7 @@ fun VizinhoAlertaApp(
         composable("welcome") {
             WelcomeScreen(
                 onLoginClick = { navController.navigate("login") },
-                onCadastrarClick = { navController.navigate("login") }
+                onCadastrarClick = { navController.navigate("cadastro") }
             )
         }
 
@@ -101,9 +102,21 @@ fun VizinhoAlertaApp(
                 onLoginSucesso = {
                     navController.navigate("mapa") {
                         popUpTo("welcome") { inclusive = true }
-                        popUpTo("login") { inclusive = true }
                     }
-                }
+                },
+                onCadastrarClick = { navController.navigate("cadastro") }
+            )
+        }
+
+        composable("cadastro") {
+            CadastroScreen(
+                authRepository = authRepository,
+                onCadastroSucesso = {
+                    navController.navigate("mapa") {
+                        popUpTo("welcome") { inclusive = true }
+                    }
+                },
+                onLoginClick = { navController.navigate("login") }
             )
         }
 
