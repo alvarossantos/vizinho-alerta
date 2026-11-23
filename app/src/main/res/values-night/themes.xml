@@ -1,21 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.VizinhoAlerta" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- App bar -->
         <item name="colorPrimary">@color/md_theme_primary</item>
         <item name="colorPrimaryVariant">@color/md_theme_primary_variant</item>
         <item name="colorOnPrimary">@color/md_theme_on_primary</item>
 
+        <!-- Secondary -->
         <item name="colorSecondary">@color/md_theme_secondary</item>
         <item name="colorSecondaryVariant">@color/md_theme_secondary_variant</item>
         <item name="colorOnSecondary">@color/md_theme_on_secondary</item>
 
+        <!-- Surface colors -->
         <item name="colorSurface">@color/md_theme_surface</item>
         <item name="colorSurfaceVariant">@color/md_theme_surface_variant</item>
         <item name="colorOnSurface">@color/md_theme_on_surface</item>
         <item name="colorOnSurfaceVariant">@color/md_theme_on_surface_variant</item>
 
+        <!-- Error -->
         <item name="colorError">@color/md_theme_error</item>
         <item name="colorErrorContainer">@color/md_theme_error_container</item>
         <item name="colorOnError">@color/md_theme_on_error</item>
+
+        <!-- Background -->
+        <item name="android:statusBarColor" tools:state="lifted" style="@null"/>
+        <item name="android:theme">@style/ThemeOverlay.Material3.DayNightActionBar</item>
     </style>
+
+    <style name="ThemeOverlay.VizinhoAlerta" parent="ThemeOverlay.Material3.DayNight.Toolbar"/>
 </resources>
