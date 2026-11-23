@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.vizinhoalerta.data.AuthRepository
 import com.vizinhoalerta.data.OcorrenciaRepository
 import com.vizinhoalerta.model.Ocorrencia
 import com.vizinhoalerta.model.Ocorrencia.Companion.SITUACAO_CONFIRMADO
@@ -30,19 +31,20 @@ import androidx.compose.runtime.rememberCoroutineScope
 @Composable
 fun AdminScreen(
     ocorrenciaRepository: OcorrenciaRepository,
+    authRepository: AuthRepository,
     onVoltar: () -> Unit
 ) {
     var ocorrencias by remember { mutableStateOf<List<Ocorrencia>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var erro by remember { mutableStateOf<String?>(null) }
+    var aba by remember { mutableStateOf(0) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
-        try {
-            ocorrencias = ocorrenciaRepository.listar() // Lista síncrona para admin
-        } finally {
-            loading = false
-        }
+        runCatching { ocorrenciaRepository.listar().getOrThrow() }
+            .onSuccess { ocorrencias = it }
+            .onFailure { erro = it.localizedMessage }
+        loading = false
     }
 
     Scaffold(
@@ -57,48 +59,60 @@ fun AdminScreen(
             )
         }
     ) { innerPadding ->
-        if (loading) {
-            Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+        Column(Modifier.fillMaxSize().padding(innerPadding)) {
+            TabRow(selectedTabIndex = aba) {
+                Tab(selected = aba == 0, onClick = { aba = 0 }, text = { Text("Ocorrências") })
+                Tab(selected = aba == 1, onClick = { aba = 1 }, text = { Text("Usuários") })
             }
-            return@Scaffold
-        }
-
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(innerPadding),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            erro?.let { msg ->
-                item {
-                    Text(text = msg, color = MaterialTheme.colorScheme.error)
-                }
-            }
-            items(ocorrencias) { ocorrencia ->
-                AdminOcorrenciaRow(
-                    ocorrencia = ocorrencia,
-                    onAtualizar = { ocorr, situacao, status ->
-                        scope.launch {
-                            ocorrenciaRepository.atualizarSituacaoComStatus(ocorr.id, situacao, status)
-                                .onSuccess {
-                                    erro = null
-                                    ocorrencias = ocorrencias.map {
-                                        if (it.id == ocorr.id) it.copy(situacao = situacao, status = status) else it
-                                    }
-                                }
-                                .onFailure { erro = it.localizedMessage }
+            when (aba) {
+                1 -> AdminUsuariosTab(authRepository = authRepository)
+                else -> {
+                    if (loading) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
                         }
-                    },
-                    onExcluir = {
-                        scope.launch {
-                            ocorrenciaRepository.deletarComMidia(ocorrencia.id)
-                                .onSuccess {
-                                    erro = null
-                                    ocorrencias = ocorrencias.filterNot { it.id == ocorrencia.id }
-                                }
-                                .onFailure { erro = it.localizedMessage }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(16.dp)
+                        ) {
+                            erro?.let { msg ->
+                                item { Text(text = msg, color = MaterialTheme.colorScheme.error) }
+                            }
+                            if (ocorrencias.isEmpty() && erro == null) {
+                                item { Text("Nenhuma ocorrência.") }
+                            }
+                            items(ocorrencias) { ocorrencia ->
+                                AdminOcorrenciaRow(
+                                    ocorrencia = ocorrencia,
+                                    onAtualizar = { ocorr, situacao, status ->
+                                        scope.launch {
+                                            ocorrenciaRepository.atualizarSituacaoComStatus(ocorr.id, situacao, status)
+                                                .onSuccess {
+                                                    erro = null
+                                                    ocorrencias = ocorrencias.map {
+                                                        if (it.id == ocorr.id) it.copy(situacao = situacao, status = status) else it
+                                                    }
+                                                }
+                                                .onFailure { erro = it.localizedMessage }
+                                        }
+                                    },
+                                    onExcluir = {
+                                        scope.launch {
+                                            ocorrenciaRepository.deletarComMidia(ocorrencia.id)
+                                                .onSuccess {
+                                                    erro = null
+                                                    ocorrencias = ocorrencias.filterNot { it.id == ocorrencia.id }
+                                                }
+                                                .onFailure { erro = it.localizedMessage }
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
-                )
+                }
             }
         }
     }
@@ -163,6 +177,9 @@ fun AdminOcorrenciaRow(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = { onAtualizar(ocorrencia, SITUACAO_REJEITADO, "resolvido") }) {
+                    Text("Rejeitado", color = Color.Red)
+                }
                 TextButton(onClick = { onAtualizar(ocorrencia, SITUACAO_RESOLVIDO, "resolvido") }) {
                     Icon(Icons.Default.CleaningServices, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))

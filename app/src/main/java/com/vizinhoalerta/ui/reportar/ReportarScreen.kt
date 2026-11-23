@@ -87,7 +87,7 @@ fun ReportarScreen(
 
     // Pré-preenche cidade/bairro do usuário
     LaunchedEffect(Unit) {
-        authRepository.currentUser?.uid?.let { uid ->
+        authRepository.currentUid?.let { uid ->
             authRepository.getDadosUsuario(uid)?.let { u ->
                 cidade = u.cidade
                 bairro = u.bairro
@@ -358,8 +358,8 @@ fun ReportarScreen(
 
                     enviando = true
                     scope.launch {
-                        val uid = authRepository.currentUser?.uid ?: ""
-                        val nome = authRepository.currentUser?.displayName ?: "Morador"
+                        val uid = authRepository.currentUid ?: ""
+                        val nome = authRepository.currentNome
                         val ocorrencia = Ocorrencia(
                             userId = uid,
                             usuarioNome = nome,

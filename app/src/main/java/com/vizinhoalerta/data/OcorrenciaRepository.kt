@@ -9,13 +9,15 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.tasks.await
 import java.io.File
 import java.util.UUID
 
 class OcorrenciaRepository(
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
-    private val storage: FirebaseStorage = FirebaseStorage.getInstance()
+    private val demo: Boolean = false,
+    private val firestore: FirebaseFirestore? = if (demo) null else FirebaseFirestore.getInstance(),
+    private val storage: FirebaseStorage? = if (demo) null else FirebaseStorage.getInstance()
 ) {
 
     companion object {
@@ -24,8 +26,9 @@ class OcorrenciaRepository(
     }
 
     suspend fun seedOcorrenciasDeTeste() {
+        if (demo) return // fixture já vem populada
         try {
-            val snapshot = firestore.collection("ocorrencias").limit(1).get().await()
+            val snapshot = firestore!!.collection("ocorrencias").limit(1).get().await()
             if (snapshot.isEmpty) {
                 val exemplos = listOf(
                     Ocorrencia(
@@ -66,7 +69,7 @@ class OcorrenciaRepository(
                     )
                 )
                 for (ex in exemplos) {
-                    firestore.collection("ocorrencias").document(ex.id).set(ex).await()
+                    firestore!!.collection("ocorrencias").document(ex.id).set(ex).await()
                 }
             }
         } catch (e: Exception) {
@@ -74,8 +77,10 @@ class OcorrenciaRepository(
         }
     }
 
-    fun observarOcorrencias(): Flow<List<Ocorrencia>> = callbackFlow {
-        val listener = firestore.collection("ocorrencias")
+    fun observarOcorrencias(): Flow<List<Ocorrencia>> {
+        if (demo) return flow { emit(DemoData.ocorrencias.toList()) }
+        return callbackFlow {
+        val listener = firestore!!.collection("ocorrencias")
             .orderBy("createdAt", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
@@ -89,27 +94,30 @@ class OcorrenciaRepository(
                 } ?: emptyList()
                 trySend(ocorrencias)
             }
-        awaitClose { listener.remove() }
+            awaitClose { listener.remove() }
+        }
     }
 
-    suspend fun listar(): List<Ocorrencia> {
+    suspend fun listar(): Result<List<Ocorrencia>> {
+        if (demo) return Result.success(DemoData.ocorrencias.toList())
         return try {
-            val snapshot = firestore.collection("ocorrencias")
+            val snapshot = firestore!!.collection("ocorrencias")
                 .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get()
                 .await()
 
-            snapshot.documents.mapNotNull { doc ->
+            Result.success(snapshot.documents.mapNotNull { doc ->
                 doc.toObject(Ocorrencia::class.java)?.copy(id = doc.id)
-            }
+            })
         } catch (e: Exception) {
-            emptyList()
+            Result.failure(e)
         }
     }
 
     suspend fun obterPorId(id: String): Ocorrencia? {
+        if (demo) return DemoData.ocorrencias.firstOrNull { it.id == id }
         return try {
-            val doc = firestore.collection("ocorrencias").document(id).get().await()
+            val doc = firestore!!.collection("ocorrencias").document(id).get().await()
             doc.toObject(Ocorrencia::class.java)?.copy(id = doc.id)
         } catch (e: Exception) {
             null
@@ -121,6 +129,10 @@ class OcorrenciaRepository(
         fotoFile: File? = null,
         audioFile: File? = null
     ): Result<Unit> {
+        if (demo) {
+            DemoData.ocorrencias.add(ocorrencia.copy(id = UUID.randomUUID().toString()))
+            return Result.success(Unit)
+        }
         return tryWithRetry {
             val id = UUID.randomUUID().toString()
             val userId = ocorrencia.userId
@@ -128,13 +140,13 @@ class OcorrenciaRepository(
             var audioUrl = ocorrencia.audioUrl
 
             if (fotoFile != null && fotoFile.exists() && userId.isNotBlank()) {
-                val fotoRef = storage.reference.child("fotos/$userId/$id.jpg")
+                val fotoRef = storage!!.reference.child("fotos/$userId/$id.jpg")
                 fotoRef.putFile(Uri.fromFile(fotoFile)).await()
                 fotoUrl = fotoRef.downloadUrl.await().toString()
             }
 
             if (audioFile != null && audioFile.exists() && userId.isNotBlank()) {
-                val audioRef = storage.reference.child("audios/$userId/$id.m4a")
+                val audioRef = storage!!.reference.child("audios/$userId/$id.m4a")
                 audioRef.putFile(Uri.fromFile(audioFile)).await()
                 audioUrl = audioRef.downloadUrl.await().toString()
             }
@@ -145,7 +157,7 @@ class OcorrenciaRepository(
                 audioUrl = audioUrl
             )
 
-            firestore.collection("ocorrencias")
+            firestore!!.collection("ocorrencias")
                 .document(id)
                 .set(novaOcorrencia)
                 .await()
@@ -155,9 +167,10 @@ class OcorrenciaRepository(
     }
 
     suspend fun resolver(id: String, userId: String): Result<Unit> {
+        if (demo) return atualizarDemo(id) { it.copy(situacao = "resolvido", status = "resolvido") }
         return tryWithRetry {
             // Deve ser chamado pelo autor - atualiza status e situacao juntos
-            firestore.collection("ocorrencias")
+            firestore!!.collection("ocorrencias")
                 .document(id)
                 .update("status", "resolvido", "situacao", "resolvido")
                 .await()
@@ -166,8 +179,9 @@ class OcorrenciaRepository(
     }
 
     suspend fun atualizarSituacao(id: String, situacao: String): Result<Unit> {
+        if (demo) return atualizarDemo(id) { it.copy(situacao = situacao) }
         return tryWithRetry {
-            firestore.collection("ocorrencias")
+            firestore!!.collection("ocorrencias")
                 .document(id)
                 .update("situacao", situacao)
                 .await()
@@ -176,8 +190,9 @@ class OcorrenciaRepository(
     }
 
     suspend fun atualizarSituacaoComStatus(id: String, situacao: String, status: String): Result<Unit> {
+        if (demo) return atualizarDemo(id) { it.copy(situacao = situacao, status = status) }
         return tryWithRetry {
-            firestore.collection("ocorrencias")
+            firestore!!.collection("ocorrencias")
                 .document(id)
                 .update("situacao", situacao, "status", status)
                 .await()
@@ -186,8 +201,14 @@ class OcorrenciaRepository(
     }
 
     suspend fun deletar(id: String): Result<Unit> {
+        if (demo) {
+            val index = DemoData.ocorrencias.indexOfFirst { it.id == id }
+            if (index < 0) return Result.failure(Exception("Ocorrência não encontrada"))
+            DemoData.ocorrencias.removeAt(index)
+            return Result.success(Unit)
+        }
         return tryWithRetry {
-            firestore.collection("ocorrencias")
+            firestore!!.collection("ocorrencias")
                 .document(id)
                 .delete()
                 .await()
@@ -199,9 +220,10 @@ class OcorrenciaRepository(
      * Deleta uma ocorrência e seus arquivos de mídia associados
      */
     suspend fun deletarComMidia(ocorrenciaId: String): Result<Unit> {
+        if (demo) return deletar(ocorrenciaId)
         return tryWithRetry {
             // Primeiro, obter a ocorrência para pegar os URLs de mídia
-            val doc = firestore.collection("ocorrencias").document(ocorrenciaId).get().await()
+            val doc = firestore!!.collection("ocorrencias").document(ocorrenciaId).get().await()
             val ocorrencia = doc.toObject(Ocorrencia::class.java)
             
             // Deletar arquivos no Storage se existentes
@@ -209,21 +231,28 @@ class OcorrenciaRepository(
                 if (corr.fotoUrl.isNotBlank()) {
                     val fotoPath = extractStoragePath(corr.fotoUrl)
                     if (fotoPath != null) {
-                        storage.reference.child(fotoPath).delete().await()
+                        storage!!.reference.child(fotoPath).delete().await()
                     }
                 }
                 if (corr.audioUrl.isNotBlank()) {
                     val audioPath = extractStoragePath(corr.audioUrl)
                     if (audioPath != null) {
-                        storage.reference.child(audioPath).delete().await()
+                        storage!!.reference.child(audioPath).delete().await()
                     }
                 }
             }
             
             // Deletar documento
-            firestore.collection("ocorrencias").document(ocorrenciaId).delete().await()
+            firestore!!.collection("ocorrencias").document(ocorrenciaId).delete().await()
             Result.success(Unit)
         }
+    }
+
+    private fun atualizarDemo(id: String, transform: (Ocorrencia) -> Ocorrencia): Result<Unit> {
+        val index = DemoData.ocorrencias.indexOfFirst { it.id == id }
+        if (index < 0) return Result.failure(Exception("Ocorrência não encontrada"))
+        DemoData.ocorrencias[index] = transform(DemoData.ocorrencias[index])
+        return Result.success(Unit)
     }
 
     private fun extractStoragePath(fullUrl: String): String? {
