@@ -60,6 +60,7 @@ fun DetalhesScreen(
     var editandoLocalizacao by remember { mutableStateOf(false) }
     var posicaoSelecionada by remember { mutableStateOf<LatLng?>(null) }
     var salvandoLocalizacao by remember { mutableStateOf(false) }
+    var mensagemErro by remember { mutableStateOf<String?>(null) }
 
     val scope = rememberCoroutineScope()
 
@@ -67,6 +68,7 @@ fun DetalhesScreen(
         carregando = true
         editandoLocalizacao = false
         posicaoSelecionada = null
+        mensagemErro = null
         val oCarregado = ocorrenciaRepository.obterPorId(ocorrenciaId)
         ocorrencia = oCarregado
         carregando = false
@@ -406,9 +408,11 @@ fun DetalhesScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
                             onClick = {
+                                mensagemErro = null
                                 scope.launch {
                                     val res = ocorrenciaRepository.deletarComMidia(o.id)
                                     res.onSuccess { onVoltar() }
+                                    res.onFailure { mensagemErro = it.message ?: "Não foi possível excluir a ocorrência." }
                                 }
                             },
                             modifier = Modifier.fillMaxWidth().height(50.dp)
@@ -430,7 +434,7 @@ fun DetalhesScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("ALTERAR LOCALIZAÇÃO", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         }
-                    } else if (editandoLocalizacao) {
+                    } else if (podeGerenciar && editandoLocalizacao) {
                         Spacer(modifier = Modifier.height(8.dp))
                         if (o.lat == 0.0 && o.lng == 0.0 && posicaoSelecionada == null) {
                             Text(
@@ -440,6 +444,7 @@ fun DetalhesScreen(
                         }
                         Button(
                             onClick = {
+                                mensagemErro = null
                                 val latLng = posicaoSelecionada ?: LatLng(o.lat, o.lng)
                                 salvandoLocalizacao = true
                                 scope.launch {
@@ -454,6 +459,7 @@ fun DetalhesScreen(
                                         posicaoSelecionada = null
                                         editandoLocalizacao = false
                                     }
+                                    res.onFailure { mensagemErro = it.message ?: "Não foi possível salvar a localização." }
                                 }
                             },
                             modifier = Modifier.fillMaxWidth().height(50.dp),
@@ -479,6 +485,9 @@ fun DetalhesScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("CANCELAR", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         }
+                    }
+                    mensagemErro?.let {
+                        Text(text = it, color = MaterialTheme.colorScheme.error)
                     }
                 }
             }
