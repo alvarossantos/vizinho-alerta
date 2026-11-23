@@ -22,10 +22,6 @@ import org.maplibre.android.maps.Style
 
 /** Debug: mapa OpenStreetMap via MapLibre, sem API key do Google. */
 internal object MapaBackend {
-    private val OSM_STYLE = """
-        {"version":8,"sources":{"osm":{"type":"raster","tiles":["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],"tileSize":256,"attribution":"© OpenStreetMap contributors"}},"layers":[{"id":"osm","type":"raster","source":"osm"}]}
-    """.trimIndent()
-
     @Composable
     fun Content(
         ocorrencias: List<Ocorrencia>,
@@ -60,7 +56,7 @@ internal object MapaBackend {
 
         AndroidView(factory = { mapView }, modifier = Modifier.fillMaxSize()) { view ->
             view.getMapAsync { map ->
-                map.setStyle(Style.Builder().fromJson(OSM_STYLE)) {
+                map.setStyle(Style.Builder().fromJson(MapaEstilo.OSM)) {
                     map.clear()
                     ocorrencias.filter { it.lat != 0.0 && it.lng != 0.0 }.forEach { o ->
                         map.addMarker(

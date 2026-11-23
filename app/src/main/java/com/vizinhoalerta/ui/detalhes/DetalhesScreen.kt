@@ -27,6 +27,7 @@ import coil.compose.AsyncImage
 import com.vizinhoalerta.data.OcorrenciaRepository
 import com.vizinhoalerta.model.Ocorrencia
 import com.vizinhoalerta.service.AudioService
+import com.vizinhoalerta.ui.mapa.MapaEstilo
 import kotlinx.coroutines.launch
 import org.maplibre.android.MapLibre
 import org.maplibre.android.WellKnownTileServer
@@ -308,7 +309,7 @@ fun DetalhesScreen(
                                     modifier = Modifier.fillMaxSize()
                                 ) { view ->
                                     view.getMapAsync { map ->
-                                        map.setStyle(Style.Builder().fromUri("https://demotiles.maplibre.org/style.json")) { _ ->
+                                        map.setStyle(Style.Builder().fromJson(MapaEstilo.OSM)) { _ ->
                                             map.clear()
                                             map.addMarker(MarkerOptions().position(pos).title(o.tipo))
                                             map.cameraPosition = CameraPosition.Builder().target(pos).zoom(15.0).build()
