@@ -297,6 +297,7 @@ fun DetalhesScreen(
                                 MapView(context).apply { onCreate(null) }
                             }
                             val editandoAtual by rememberUpdatedState(editandoLocalizacao)
+                            val posAtual by rememberUpdatedState(pos)
                             var mapAtual by remember { mutableStateOf<MapLibreMap?>(null) }
 
                             DisposableEffect(lifecycleOwner) {
@@ -344,8 +345,8 @@ fun DetalhesScreen(
                                 if (map != null) {
                                     map.setStyle(Style.Builder().fromJson(MapaEstilo.OSM)) { _ ->
                                         map.clear()
-                                        map.addMarker(MarkerOptions().position(pos).title(o.tipo))
-                                        map.setCameraPosition(CameraPosition.Builder().target(pos).zoom(15.0).build())
+                                        map.addMarker(MarkerOptions().position(posAtual).title(o.tipo))
+                                        map.setCameraPosition(CameraPosition.Builder().target(posAtual).zoom(15.0).build())
                                     }
                                     map.addOnMapClickListener(listener)
                                 }
@@ -431,6 +432,12 @@ fun DetalhesScreen(
                         }
                     } else if (editandoLocalizacao) {
                         Spacer(modifier = Modifier.height(8.dp))
+                        if (o.lat == 0.0 && o.lng == 0.0 && posicaoSelecionada == null) {
+                            Text(
+                                text = "Toque no mapa para escolher o ponto.",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                         Button(
                             onClick = {
                                 val latLng = posicaoSelecionada ?: LatLng(o.lat, o.lng)
@@ -450,7 +457,7 @@ fun DetalhesScreen(
                                 }
                             },
                             modifier = Modifier.fillMaxWidth().height(50.dp),
-                            enabled = !salvandoLocalizacao
+                            enabled = !salvandoLocalizacao && !(o.lat == 0.0 && o.lng == 0.0 && posicaoSelecionada == null)
                         ) {
                             if (salvandoLocalizacao) {
                                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
