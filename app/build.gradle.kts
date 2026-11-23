@@ -70,7 +70,12 @@ dependencies {
     // Location & Maps (MapLibre - OpenStreetMap, no API key needed!)
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation("org.maplibre.gl:android-sdk:13.7.1")
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
     implementation("com.google.maps.android:maps-compose:2.13.0")
+    implementation("com.google.guava:guava:33.2.1-android")
+
+    // Carregamento de imagem (AsyncImage)
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
     // Firebase BOM
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))

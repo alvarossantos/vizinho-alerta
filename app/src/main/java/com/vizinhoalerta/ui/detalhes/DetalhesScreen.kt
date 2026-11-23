@@ -28,6 +28,8 @@ import com.vizinhoalerta.data.OcorrenciaRepository
 import com.vizinhoalerta.model.Ocorrencia
 import com.vizinhoalerta.service.AudioService
 import kotlinx.coroutines.launch
+import org.maplibre.android.MapLibre
+import org.maplibre.android.WellKnownTileServer
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.maps.MapView
@@ -272,7 +274,10 @@ fun DetalhesScreen(
                             val pos = LatLng(o.lat, o.lng)
                             val context = LocalContext.current
                             val lifecycleOwner = LocalLifecycleOwner.current
-                            val mapView = remember { MapView(context).apply { onCreate(null) } }
+                            val mapView = remember {
+                                MapLibre.getInstance(context, null, WellKnownTileServer.MapLibre)
+                                MapView(context).apply { onCreate(null) }
+                            }
 
                             DisposableEffect(lifecycleOwner) {
                                 val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->

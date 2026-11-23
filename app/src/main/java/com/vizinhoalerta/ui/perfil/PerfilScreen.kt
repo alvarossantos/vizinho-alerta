@@ -11,15 +11,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.vizinhoalerta.data.AuthRepository
+import com.vizinhoalerta.model.Usuario
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PerfilScreen(
     authRepository: AuthRepository,
     onLogoutClick: () -> Unit,
+    onAdminClick: () -> Unit,
     onVoltar: () -> Unit
 ) {
-    val usuario = remember { authRepository.getDadosUsuario(authRepository.currentUser?.uid ?: "") }
+    var usuario by remember { mutableStateOf<Usuario?>(null) }
+
+    LaunchedEffect(Unit) {
+        usuario = authRepository.getDadosUsuario(authRepository.currentUser?.uid ?: "")
+    }
 
     Scaffold(
         topBar = {
@@ -41,7 +47,7 @@ fun PerfilScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
-                icons.Default.Person,
+                Icons.Default.Person,
                 contentDescription = null,
                 modifier = Modifier.size(72.dp),
                 tint = MaterialTheme.colorScheme.primary
@@ -63,12 +69,18 @@ fun PerfilScreen(
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.primary
             )
+            if (usuario?.isAdmin == true) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = onAdminClick,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Painel Admin")
+                }
+            }
             Spacer(modifier = Modifier.height(32.dp))
             OutlinedButton(
-                onClick = {
-                    onLogoutClick()
-                    onVoltar()
-                },
+                onClick = onLogoutClick,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Sair", color = MaterialTheme.colorScheme.error)

@@ -15,7 +15,6 @@
 
     <application
         android:allowBackup="true"
-        android:dataExtractionSafe="false"
         android:fullBackupContent="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -29,7 +28,8 @@
             android:launchMode="singleTop"
             android:name=".MainActivity"
             android:screenOrientation="fullSensor"
-            android:theme="@style/Theme.VizinhoAlerta">
+            android:theme="@style/Theme.VizinhoAlerta"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

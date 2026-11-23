@@ -79,7 +79,9 @@ class OcorrenciaRepository(
             .orderBy("createdAt", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    close(error)
+                    // Ex.: logout dispara PERMISSION_DENIED. Não fechar o flow com erro:
+                    // isso derrubaria a coroutine que coleta o estado da UI.
+                    trySend(emptyList())
                     return@addSnapshotListener
                 }
                 val ocorrencias = snapshot?.documents?.mapNotNull { doc ->
@@ -243,12 +245,12 @@ class OcorrenciaRepository(
      * Propaga CancellationException e não repete em erros de permissão (PERMISSION_DENIED).
      */
     private suspend fun <T> tryWithRetry(
-        operation: suspend () -> Result<T>,
         maxRetries: Int = MAX_RETRIES,
-        delayMs: Long = RETRY_DELAY_MS
+        delayMs: Long = RETRY_DELAY_MS,
+        operation: suspend () -> Result<T>
     ): Result<T> {
         var attempt = 0
-        var lastError: Exception? = null
+        var lastError: Throwable? = null
         
         while (attempt < maxRetries) {
             try {
@@ -283,7 +285,7 @@ class OcorrenciaRepository(
         return Result.failure(lastError!!)
     }
     
-    private fun isPermanentError(e: Exception?): Boolean {
+    private fun isPermanentError(e: Throwable?): Boolean {
         if (e == null) return false
         val msg = e.message?.lowercase() ?: return false
         return msg.contains("permission_denied") || 

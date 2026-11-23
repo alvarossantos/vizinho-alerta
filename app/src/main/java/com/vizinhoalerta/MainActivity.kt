@@ -137,14 +137,21 @@ fun VizinhoAlertaApp(
         composable("lista_ocorrencias") {
             OcorrenciasListScreen(
                 ocorrenciaRepository = ocorrenciaRepository,
-                onVoltar = { navController.popBackStack() }
+                onVoltar = { navController.popBackStack() },
+                onOcorrenciaClick = { id -> navController.navigate("detalhes/$id") }
             )
         }
 
         composable("perfil") {
             PerfilScreen(
                 authRepository = authRepository,
-                onLogoutClick = { authRepository.logout() },
+                onLogoutClick = {
+                    authRepository.logout()
+                    navController.navigate("welcome") {
+                        popUpTo("mapa") { inclusive = true }
+                    }
+                },
+                onAdminClick = { navController.navigate("admin") },
                 onVoltar = { navController.popBackStack() }
             )
         }

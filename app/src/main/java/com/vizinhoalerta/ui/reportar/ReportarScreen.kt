@@ -3,7 +3,11 @@ package com.vizinhoalerta.ui.reportar
 import android.graphics.BitmapFactory
 import android.location.Location
 import androidx.camera.core.ImageCapture
+import androidx.camera.core.Preview
+import androidx.camera.core.CameraSelector
+import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.compose.foundation.Image
+import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -20,6 +24,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -129,7 +134,8 @@ fun ReportarScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .imePadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             OutlinedButton(
@@ -273,7 +279,7 @@ fun ReportarScreen(
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 if (audioFile != null && audioFile!!.exists()) {
-                    Row(verticalAlignment = Alignment.CenterHorizontally) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = {
                             if (audioFile!!.exists()) {
                                 AudioService.reproduzirAudio(audioFile!!.absolutePath)
@@ -312,7 +318,7 @@ fun ReportarScreen(
 
             Text("Localização", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
-            Row(verticalAlignment = Alignment.CenterHorizontally) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 val loc = localizacao
                 Text(
                     text = if (loc != null) "${"%.4f".format(loc.latitude)}, ${"%.4f".format(loc.longitude)}"

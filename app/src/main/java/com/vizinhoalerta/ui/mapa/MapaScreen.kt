@@ -134,7 +134,7 @@ fun MapaScreen(
                             icon = com.google.android.gms.maps.model.BitmapDescriptorFactory.defaultMarker(
                                 com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_BLUE
                             ),
-                            onClick = false
+                            onClick = { false }
                         )
                     }
                 }

@@ -1,5 +1,6 @@
 package com.vizinhoalerta.ui.lista
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,7 +21,8 @@ import com.vizinhoalerta.model.Ocorrencia
 @Composable
 fun OcorrenciasListScreen(
     ocorrenciaRepository: OcorrenciaRepository,
-    onVoltar: () -> Unit
+    onVoltar: () -> Unit,
+    onOcorrenciaClick: (String) -> Unit
 ) {
     val ocorrencias by ocorrenciaRepository.observarOcorrencias()
         .collectAsState(initial = emptyList())
@@ -56,7 +58,9 @@ fun OcorrenciasListScreen(
                 items(ocorrencias) { item ->
                     val isResolvido = item.status == "resolvido"
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onOcorrenciaClick(item.id) },
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant
                         )

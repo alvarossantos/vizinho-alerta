@@ -49,7 +49,8 @@ fun LoginScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(24.dp)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .imePadding(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (isCadastro) {
@@ -121,9 +122,15 @@ fun LoginScreen(
                     carregando = true
                     scope.launch {
                         val result = if (isCadastro) {
-                            authRepository.cadastrar(nome, email, senha, cidade, bairro)
+                            authRepository.cadastrar(
+                                nome = nome,
+                                email = email,
+                                pass = senha,
+                                cidade = cidade,
+                                bairro = bairro
+                            )
                         } else {
-                            authRepository.login(email, senha)
+                            authRepository.login(email = email, pass = senha)
                         }
                         carregando = false
                         result.onSuccess { onLoginSucesso() }

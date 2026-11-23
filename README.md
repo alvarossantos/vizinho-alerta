@@ -69,6 +69,18 @@ app/src/main/java/com/vizinhoalerta/
 ### Navegação
 Welcome → Login → Mapa → Reportar/Detalhes/Lista/Perfil/Admin
 
+## Interface
+
+Capturas do app rodando no emulador Android 14 (1080×2280).
+
+| | |
+|---|---|
+| <img src="docs/screenshots/08-welcome.png" alt="Welcome" width="240"> **Welcome** | <img src="docs/screenshots/09-login.png" alt="Login" width="240"> **Login** |
+| <img src="docs/screenshots/10-cadastro.png" alt="Cadastro" width="240"> **Cadastro** | <img src="docs/screenshots/03-mapa.png" alt="Mapa" width="240"> **Mapa** |
+| <img src="docs/screenshots/04-reportar.png" alt="Nova ocorrência" width="240"> **Nova ocorrência** | <img src="docs/screenshots/05-reportar-midia.png" alt="Mídia e envio" width="240"> **Mídia e envio** |
+| <img src="docs/screenshots/06-lista.png" alt="Lista" width="240"> **Lista** | <img src="docs/screenshots/07-detalhes.png" alt="Detalhes" width="240"> **Detalhes** |
+| <img src="docs/screenshots/01-perfil.png" alt="Perfil" width="240"> **Perfil** | <img src="docs/screenshots/02-admin.png" alt="Painel Admin" width="240"> **Painel Admin** |
+
 ## Regras de Segurança (Firestore & Storage)
 
 ### Firestore Rules

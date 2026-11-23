@@ -17,8 +17,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.vizinhoalerta.data.OcorrenciaRepository
 import com.vizinhoalerta.model.Ocorrencia
-import com.vizinhoalerta.model.Ocorrencia.Companion.*
+import com.vizinhoalerta.model.Ocorrencia.Companion.SITUACAO_CONFIRMADO
+import com.vizinhoalerta.model.Ocorrencia.Companion.SITUACAO_EM_VERIFICACAO
+import com.vizinhoalerta.model.Ocorrencia.Companion.SITUACAO_REGISTRADO
+import com.vizinhoalerta.model.Ocorrencia.Companion.SITUACAO_REJEITADO
+import com.vizinhoalerta.model.Ocorrencia.Companion.SITUACAO_RESOLVIDO
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
+import androidx.compose.runtime.rememberCoroutineScope
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,6 +34,7 @@ fun AdminScreen(
 ) {
     var ocorrencias by remember { mutableStateOf<List<Ocorrencia>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
+    var erro by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
@@ -61,26 +68,34 @@ fun AdminScreen(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            erro?.let { msg ->
+                item {
+                    Text(text = msg, color = MaterialTheme.colorScheme.error)
+                }
+            }
             items(ocorrencias) { ocorrencia ->
                 AdminOcorrenciaRow(
                     ocorrencia = ocorrencia,
                     onAtualizar = { ocorr, situacao, status ->
                         scope.launch {
                             ocorrenciaRepository.atualizarSituacaoComStatus(ocorr.id, situacao, status)
-                            // Recarrega lista após atualização
-                            val index = ocorrencias.indexOfFirst { it.id == ocorr.id }
-                            if (index != -1) {
-                                ocorrencias = ocorrencias.toMutableList().apply {
-                                    set(index, ocorrencia.copy(situacao = situacao, status = status))
+                                .onSuccess {
+                                    erro = null
+                                    ocorrencias = ocorrencias.map {
+                                        if (it.id == ocorr.id) it.copy(situacao = situacao, status = status) else it
+                                    }
                                 }
-                            }
+                                .onFailure { erro = it.localizedMessage }
                         }
                     },
                     onExcluir = {
                         scope.launch {
                             ocorrenciaRepository.deletarComMidia(ocorrencia.id)
-                            // Recarrega lista
-                            ocorrencias = ocorrencias.filterNot { it.id == ocorrencia.id }
+                                .onSuccess {
+                                    erro = null
+                                    ocorrencias = ocorrencias.filterNot { it.id == ocorrencia.id }
+                                }
+                                .onFailure { erro = it.localizedMessage }
                         }
                     }
                 )
@@ -106,9 +121,11 @@ fun AdminOcorrenciaRow(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(ocorrencia.tipo, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Chip(
+                FilterChip(
+                    selected = true,
+                    onClick = {},
                     label = { Text(ocorrencia.situacao) },
-                    colors = ChipDefaults.chipColors(
+                    colors = FilterChipDefaults.filterChipColors(
                         containerColor = when (ocorrencia.situacao) {
                             SITUACAO_REGISTRADO -> Color(0xFFFFEB3B)
                             SITUACAO_EM_VERIFICACAO -> Color(0xFFFFC107)
