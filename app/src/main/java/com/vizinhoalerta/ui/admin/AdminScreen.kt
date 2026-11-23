@@ -39,7 +39,9 @@ fun AdminScreen(
 
     LaunchedEffect(Unit) {
         try {
-            ocorrencias = ocorrenciaRepository.listar() // Lista síncrona para admin
+            ocorrenciaRepository.listar()
+                .onSuccess { ocorrencias = it }
+                .onFailure { erro = it.localizedMessage }
         } finally {
             loading = false
         }
