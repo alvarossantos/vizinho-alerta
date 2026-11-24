@@ -114,8 +114,15 @@ fun VizinhoAlertaApp(modo: BackendSelector.Mode, context: Context) {
             authRepository.precisaCompletarPerfil(uid) -> "perfil"
             else -> "mapa"
         }
-        if (destino == "perfil") completarPerfil = true
+        completarPerfil = (destino == "perfil")
         startDestination = destino
+    }
+
+    fun irParaDestino(incompleto: Boolean) {
+        completarPerfil = incompleto
+        navController.navigate(if (incompleto) "perfil" else "mapa") {
+            popUpTo("welcome") { inclusive = true }
+        }
     }
 
     fun sair() {
@@ -135,7 +142,7 @@ fun VizinhoAlertaApp(modo: BackendSelector.Mode, context: Context) {
     val currentRoute = navBackStackEntry?.destination?.route
 
     val rotasSemBottomNav = setOf("welcome", "login", "cadastro") +
-        if (completarPerfil) setOf("perfil") else emptySet()
+        if (completarPerfil) setOf("perfil", "admin") else emptySet()
     val mostrarBottomNav = currentRoute?.let { route ->
         rotasSemBottomNav.none { route.startsWith(it) }
     } ?: false
@@ -179,15 +186,13 @@ fun VizinhoAlertaApp(modo: BackendSelector.Mode, context: Context) {
                         authRepository = authRepository,
                         modoDemo = demo,
                         googleSignIn = googleSignIn,
-                        onGoogleSucesso = { incompleto ->
-                            completarPerfil = incompleto
-                            navController.navigate(if (incompleto) "perfil" else "mapa") {
-                                popUpTo("welcome") { inclusive = true }
-                            }
-                        },
+                        onGoogleSucesso = { incompleto -> irParaDestino(incompleto) },
                         onLoginSucesso = {
-                            navController.navigate("mapa") {
-                                popUpTo("welcome") { inclusive = true }
+                            scope.launch {
+                                val incompleto = authRepository.currentUid?.let {
+                                    authRepository.precisaCompletarPerfil(it)
+                                } ?: false
+                                irParaDestino(incompleto)
                             }
                         },
                         onCadastrarClick = { navController.navigate("cadastro") }
@@ -199,15 +204,13 @@ fun VizinhoAlertaApp(modo: BackendSelector.Mode, context: Context) {
                         authRepository = authRepository,
                         modoDemo = demo,
                         googleSignIn = googleSignIn,
-                        onGoogleSucesso = { incompleto ->
-                            completarPerfil = incompleto
-                            navController.navigate(if (incompleto) "perfil" else "mapa") {
-                                popUpTo("welcome") { inclusive = true }
-                            }
-                        },
+                        onGoogleSucesso = { incompleto -> irParaDestino(incompleto) },
                         onCadastroSucesso = {
-                            navController.navigate("mapa") {
-                                popUpTo("welcome") { inclusive = true }
+                            scope.launch {
+                                val incompleto = authRepository.currentUid?.let {
+                                    authRepository.precisaCompletarPerfil(it)
+                                } ?: false
+                                irParaDestino(incompleto)
                             }
                         },
                         onLoginClick = { navController.navigate("login") }
