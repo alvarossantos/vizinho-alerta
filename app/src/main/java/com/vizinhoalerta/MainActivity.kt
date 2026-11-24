@@ -3,6 +3,7 @@ package com.vizinhoalerta
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -75,7 +76,7 @@ class MainActivity : ComponentActivity() {
             val configReal = !getString(R.string.google_api_key).contains("DUMMY", ignoreCase = true)
             val modo = BackendSelector.detectar(configReal = configReal)
             setContent {
-                VizinhoAlertaTheme { VizinhoAlertaApp(modo = modo) }
+                VizinhoAlertaTheme { VizinhoAlertaApp(modo = modo, context = this@MainActivity) }
             }
         }
     }
@@ -91,9 +92,9 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun VizinhoAlertaApp(modo: BackendSelector.Mode) {
+fun VizinhoAlertaApp(modo: BackendSelector.Mode, context: Context) {
     val demo = modo == BackendSelector.Mode.DEMO
-    val authRepository = remember(modo) { AuthRepository(demo = demo) }
+    val authRepository = remember(modo) { AuthRepository(demo = demo, context = context) }
     val ocorrenciaRepository = remember(modo) { OcorrenciaRepository(demo = demo, authRepository = authRepository) }
     val navController = rememberNavController()
     val startDestination = remember {

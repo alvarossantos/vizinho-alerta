@@ -1,12 +1,19 @@
 package com.vizinhoalerta.data
 
+import android.content.Context
+import android.content.SharedPreferences
+import android.net.Uri
+import androidx.core.content.FileProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.userProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageMetadata
 import com.vizinhoalerta.model.Usuario
 import kotlinx.coroutines.tasks.await
+import java.io.File
 
 internal fun formatAuthException(e: Exception): String {
     val message = e.message ?: ""
@@ -37,10 +44,12 @@ internal fun erroDisponibilidadeUsername(disponivel: Boolean?, username: String)
 class AuthRepository(
     private val demo: Boolean = false,
     private val auth: FirebaseAuth? = if (demo) null else FirebaseAuth.getInstance(),
-    private val firestore: FirebaseFirestore? = if (demo) null else FirebaseFirestore.getInstance()
+    private val firestore: FirebaseFirestore? = if (demo) null else FirebaseFirestore.getInstance(),
+    private val context: Context? = null
 ) {
 
     private var demoUid: String? = null
+    private val prefs: SharedPreferences? = context?.getSharedPreferences("perfil_fotos", Context.MODE_PRIVATE)
 
     val currentUser: FirebaseUser?
         get() = if (demo) null else auth?.currentUser
@@ -55,24 +64,24 @@ class AuthRepository(
             auth?.currentUser?.displayName ?: "Morador"
         }
 
-    suspend fun login(email: String, pass: String): Result<Unit> {
+    suspend fun login(email: String, pass: String): kotlin.Result<Unit> {
         if (demo) {
             val emailTrimmed = email.trim()
-            if (emailTrimmed.isBlank()) return Result.failure(Exception("Informe o e-mail."))
-            if (pass.length < 6) return Result.failure(Exception("A senha deve ter no mínimo 6 caracteres."))
+            if (emailTrimmed.isBlank()) return kotlin.Result.failure(Exception("Informe o e-mail."))
+            if (pass.length < 6) return kotlin.Result.failure(Exception("A senha deve ter no mínimo 6 caracteres."))
             val usuario = DemoData.usuarios.firstOrNull { it.email.equals(emailTrimmed, ignoreCase = true) }
                 ?: criarUsuarioDemo(emailTrimmed)
             demoUid = usuario.id
-            return Result.success(Unit)
+            return kotlin.Result.success(Unit)
         }
         return try {
             val emailTrimmed = email.trim()
             val result = auth!!.signInWithEmailAndPassword(emailTrimmed, pass).await()
-            result.user ?: return Result.failure(Exception("Usuário não encontrado"))
-            Result.success(Unit)
+            result.user ?: return kotlin.Result.failure(Exception("Usuário não encontrado"))
+            kotlin.Result.success(Unit)
         } catch (e: Exception) {
             val msg = formatAuthException(e)
-            Result.failure(Exception(msg))
+            kotlin.Result.failure(Exception(msg))
         }
     }
 
@@ -142,14 +151,14 @@ class AuthRepository(
         bairro: String,
         telefone: String = "",
         isAdmin: Boolean = false
-    ): Result<Unit> {
+    ): kotlin.Result<Unit> {
         val senhaErro = validarSenhaSegura(pass)
-        if (senhaErro != null) return Result.failure(Exception(senhaErro))
+        if (senhaErro != null) return kotlin.Result.failure(Exception(senhaErro))
         val emailTrimmed = email.trim()
 
         if (demo) {
             if (DemoData.usuarios.any { it.email.equals(emailTrimmed, ignoreCase = true) }) {
-                return Result.failure(Exception("Este e-mail já está cadastrado."))
+                return kotlin.Result.failure(Exception("Este e-mail já está cadastrado."))
             }
             val base = "@" + emailTrimmed.substringBefore("@").lowercase().replace(Regex("[^a-z0-9]"), "")
             var username = base + (100..999).random()
@@ -169,7 +178,7 @@ class AuthRepository(
             )
             DemoData.usuarios.add(usuario)
             demoUid = usuario.id
-            return Result.success(Unit)
+            return kotlin.Result.success(Unit)
         }
 
         return try {
@@ -181,7 +190,7 @@ class AuthRepository(
             }
 
             val result = auth!!.createUserWithEmailAndPassword(emailTrimmed, pass).await()
-            val user = result.user ?: return Result.failure(Exception("Falha ao criar usuário"))
+            val user = result.user ?: return kotlin.Result.failure(Exception("Falha ao criar usuário"))
 
             // Atualiza o nome de exibição no Firebase Auth
             val profileUpdates = userProfileChangeRequest {
@@ -207,19 +216,19 @@ class AuthRepository(
                 .set(usuario)
                 .await()
 
-            Result.success(Unit)
+            kotlin.Result.success(Unit)
         } catch (e: Exception) {
             val msg = formatAuthException(e)
-            Result.failure(Exception(msg))
+            kotlin.Result.failure(Exception(msg))
         }
     }
 
-    suspend fun signInWithGoogle(idToken: String): Result<FirebaseUser> {
-        if (demo) return Result.failure(Exception("Login com Google indisponível no modo demo."))
+    suspend fun signInWithGoogle(idToken: String): kotlin.Result<FirebaseUser> {
+        if (demo) return kotlin.Result.failure(Exception("Login com Google indisponível no modo demo."))
         return try {
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             val result = auth!!.signInWithCredential(credential).await()
-            val user = result.user ?: return Result.failure(Exception("Falha ao autenticar com o Google"))
+            val user = result.user ?: return kotlin.Result.failure(Exception("Falha ao autenticar com o Google"))
 
             val docRef = firestore!!.collection("usuarios").document(user.uid)
             val doc = docRef.get().await()
@@ -239,9 +248,9 @@ class AuthRepository(
                 docRef.set(usuario).await()
             }
 
-            Result.success(user)
+            kotlin.Result.success(user)
         } catch (e: Exception) {
-            Result.failure(Exception(formatAuthException(e)))
+            kotlin.Result.failure(Exception(formatAuthException(e)))
         }
     }
 
@@ -252,14 +261,14 @@ class AuthRepository(
         estado: String,
         cidade: String,
         bairro: String
-    ): Result<Unit> {
+    ): kotlin.Result<Unit> {
         if (demo) {
-            val uid = demoUid ?: return Result.failure(Exception("Usuário não logado"))
+            val uid = demoUid ?: return kotlin.Result.failure(Exception("Usuário não logado"))
             val cleanUsername = normalizarUsername(username)
             erroDisponibilidadeUsername(isUsernameDisponivel(cleanUsername, uid), cleanUsername)
-                ?.let { return Result.failure(Exception(it)) }
+                ?.let { return kotlin.Result.failure(Exception(it)) }
             val index = DemoData.usuarios.indexOfFirst { it.id == uid }
-            if (index < 0) return Result.failure(Exception("Usuário não encontrado"))
+            if (index < 0) return kotlin.Result.failure(Exception("Usuário não encontrado"))
             val anterior = DemoData.usuarios[index]
             DemoData.usuarios[index] = anterior.copy(
                 nome = nome.trim(),
@@ -269,14 +278,14 @@ class AuthRepository(
                 cidade = cidade.trim(),
                 bairro = bairro.trim()
             )
-            return Result.success(Unit)
+            return kotlin.Result.success(Unit)
         }
         return try {
-            val user = auth?.currentUser ?: return Result.failure(Exception("Usuário não logado"))
+            val user = auth?.currentUser ?: return kotlin.Result.failure(Exception("Usuário não logado"))
 
             val cleanUsername = normalizarUsername(username)
             erroDisponibilidadeUsername(isUsernameDisponivel(cleanUsername, user.uid), cleanUsername)
-                ?.let { return Result.failure(Exception(it)) }
+                ?.let { return kotlin.Result.failure(Exception(it)) }
 
             val profileUpdates = userProfileChangeRequest {
                 displayName = nome.trim()
@@ -297,25 +306,25 @@ class AuthRepository(
                 .update(updates)
                 .await()
 
-            Result.success(Unit)
+            kotlin.Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(e)
+            kotlin.Result.failure(e)
         }
     }
 
-    suspend fun alterarSenha(novaSenha: String): Result<Unit> {
-        if (demo) return Result.failure(Exception("Alteração de senha indisponível no modo demo."))
+    suspend fun alterarSenha(novaSenha: String): kotlin.Result<Unit> {
+        if (demo) return kotlin.Result.failure(Exception("Alteração de senha indisponível no modo demo."))
         return try {
             val senhaErro = validarSenhaSegura(novaSenha)
             if (senhaErro != null) {
-                return Result.failure(Exception(senhaErro))
+                return kotlin.Result.failure(Exception(senhaErro))
             }
 
-            val user = auth?.currentUser ?: return Result.failure(Exception("Usuário não logado"))
+            val user = auth?.currentUser ?: return kotlin.Result.failure(Exception("Usuário não logado"))
             user.updatePassword(novaSenha).await()
-            Result.success(Unit)
+            kotlin.Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(Exception(formatAuthException(e)))
+            kotlin.Result.failure(Exception(formatAuthException(e)))
         }
     }
 
@@ -335,7 +344,12 @@ class AuthRepository(
     }
 
     suspend fun listarUsuarios(): List<Usuario> {
-        if (demo) return DemoData.usuarios.toList()
+        if (demo) {
+            return DemoData.usuarios.map { u ->
+                val fotoPath = prefs?.getString(u.id, null)
+                mesclarFotoDemo(u, fotoPath)
+            }
+        }
         return try {
             val snapshot = firestore!!.collection("usuarios").orderBy("nome").get().await()
             snapshot.documents.mapNotNull { doc ->
@@ -347,13 +361,73 @@ class AuthRepository(
     }
 
     suspend fun getDadosUsuario(uid: String): Usuario? {
-        if (demo) return DemoData.usuarios.firstOrNull { it.id == uid }
+        if (demo) {
+            val usuario = DemoData.usuarios.firstOrNull { it.id == uid }
+            return usuario?.let { mesclarFotoDemo(it, prefs?.getString(it.id, null)) }
+        }
         return try {
             val doc = firestore!!.collection("usuarios").document(uid).get().await()
             doc.toObject(Usuario::class.java)?.copy(id = doc.id)
         } catch (e: Exception) {
             null
         }
+    }
+
+    suspend fun salvarFotoPerfil(uri: Uri): kotlin.Result<String> {
+        val uid = currentUid ?: return kotlin.Result.failure(Exception("Usuário não logado"))
+        val ctx = context ?: return kotlin.Result.failure(Exception("Contexto não disponível para salvar foto"))
+
+        val contentResolver = ctx.contentResolver
+        val inputStream = contentResolver.openInputStream(uri) ?: return kotlin.Result.failure(Exception("Não foi possível ler a imagem selecionada"))
+
+        val bytes = inputStream.readBytes()
+        inputStream.close()
+
+        val mime = contentResolver.getType(uri) ?: "image/jpeg"
+        val erroValidacao = validarImagemPerfil(mime, bytes.size)
+        if (erroValidacao != null) {
+            return kotlin.Result.failure(Exception(erroValidacao))
+        }
+
+        if (demo) {
+            val dir = File(ctx.filesDir, "perfil")
+            dir.mkdirs()
+            val file = File(dir, "${uid}.jpg")
+            file.writeBytes(bytes)
+            val absolutePath = file.absolutePath
+            prefs?.edit()?.putString(uid, absolutePath)?.apply()
+            
+            // Atualiza a lista DemoData
+            val index = DemoData.usuarios.indexOfFirst { it.id == uid }
+            if (index >= 0) {
+                DemoData.usuarios[index] = DemoData.usuarios[index].copy(fotoUrl = absolutePath)
+            }
+            
+            return kotlin.Result.success(absolutePath)
+        }
+
+        // Produção
+        val storage = FirebaseStorage.getInstance()
+        val ref = storage.reference.child("perfil/$uid.jpg")
+        val metadata = StorageMetadata.Builder().setContentType(mime).build()
+        val uploadTask = ref.putBytes(bytes, metadata).await()
+        val downloadUrl = uploadTask.metadata!!.reference!!.downloadUrl.await().toString()
+
+        // Atualiza Firebase Auth profile
+        auth?.currentUser?.let { user ->
+            val profileUpdates = userProfileChangeRequest {
+                photoUri = Uri.parse(downloadUrl)
+            }
+            user.updateProfile(profileUpdates).await()
+        }
+
+        // Atualiza Firestore
+        firestore!!.collection("usuarios")
+            .document(uid)
+            .update("fotoUrl", downloadUrl)
+            .await()
+
+        return kotlin.Result.success(downloadUrl)
     }
 
     fun logout() {
