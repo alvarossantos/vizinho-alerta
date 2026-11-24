@@ -104,3 +104,18 @@ Nenhum avatar novo é gravado na ocorrência; `userId` continua sendo a fonte da
 - `./gradlew compileReleaseKotlin --no-daemon` → deve falhar no `checkReleaseGoogleServices` com DUMMY.
 - AVD: login demo → Perfil → trocar foto pela galeria → foto aparece no perfil; abrir ocorrência própria e alheia → avatar do autor correto; admin → lista de usuários com avatar; usuário comum continua sem ações em ocorrência alheia; reposicionamento no mapa continua persistindo.
 - `git diff --check` limpo; PR sem merge até aprovação explícita.
+
+## Adendo — overlay do mapa (decisão do usuário, 2026-11-24)
+
+O usuário recebeu um ZIP com código Compose gerado pelo Claude e escolheu integrar o overlay do mapa, revisando a opção B progressiva original.
+
+**Entra no escobo:**
+- Tokens extraídos dos mockups pelo Claude: laranja `#F97316`, marinho `#0F172A`, `Slate #64748B`, `Borda #E2E8F0`, `Fundo #F8FAFC` e cores de status (vermelho/âmbar/verde/azul claros). Substituem `#FF7A1A`/`#12203A` deste documento.
+- Busca flutuante sobre o mapa (Surface branca, ícone `Search`, campo "Buscar endereço ou ocorrência").
+- Chips de filtro em `LazyRow` com ponto colorido e item ativo em marinho.
+- FAB circular 64dp em laranja com ícone `Add` para "Nova ocorrência".
+- Cartão flutuante inferior com cantos 28dp, sombra, ícone de categoria em bloco arredondado, título, endereço e badge de status.
+
+**Não entra (YAGNI / domínio inexistente):** `confirmacoes`, `comentarios`, `distancia`, `tempo`, `urgente`, conquistas e a camada `OcorrenciaUi`/`CategoriaUi` com mapper. O cartão usa somente dados reais de `Ocorrencia`: `tipo`, `descricao`, `bairro/cidade`, status e avatar do autor.
+
+**Preservado:** autoria (`exigirPermissaoDemo`, `resolver`, `atualizarLocalizacao`, botões de gestão), bottom nav, logout no Perfil, guard de release e fluxo demo validado.

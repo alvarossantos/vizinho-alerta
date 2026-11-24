@@ -363,3 +363,7 @@ gh pr create --title 'feat: UI em nível de referência e foto de perfil do vizi
 ```
 
 Expected: PR `OPEN`, label `enhancement`, `Closes #N` linkado. Não mesclar.
+
+## Adendo — Task 4 revisada (2026-11-24)
+
+A Task 4 original (busca/chips acima do mapa) é substituída pelo overlay flutuante descrito no adendo do spec. O filtro TDD (`CategoriaFiltro`, `FiltroOcorrencias`, 4 testes) é mantido como base de lógica; muda apenas a apresentação no `MapaScreen`. O cartão flutuante usa `Ocorrencia` real — sem mapper `OcorrenciaUi`. Verificação de autoria (Step 7 original) permanece obrigatória.

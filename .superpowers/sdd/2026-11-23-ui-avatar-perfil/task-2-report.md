@@ -88,3 +88,52 @@ Success
 ## Concerns
 
 Nenhum. Todos os testes passam, build bem-sucedido, APK instala e roda no AVD sem crashes.
+
+## Fix round 1
+
+### Findings abordados
+
+1. **AuthRepository.kt:383-384** — `inputStream.readBytes()` seguido de `inputStream.close()`; se `readBytes()` lançar, stream vaza. **Fix:** usar `inputStream.use { it.readBytes() }`.
+
+2. **PerfilScreen.kt:87-98** — o launcher `seletorCamera` capturava UID no registro do listener; se o UID mudasse entre lançar câmera e receber resultado, valor stale era usado. **Fix:** adicionar `var pendingCameraUid by remember { mutableStateOf<String?>(null) }`; em `abrirCamera()` guarda o UID em `pendingCameraUid`; no lambda do launcher lê de `pendingCameraUid` e limpa depois.
+
+3. **task-2-report.md:52** — contagem de testes incorreta (45 vs 40). **Fix:** corrigido para "40 testes (35 baseline + 5 novos do FotoPerfilTest)".
+
+### Mudanças
+
+- `app/src/main/java/com/vizinhoalerta/data/AuthRepository.kt`: linhas 381-384 — `use` block para fechar stream automaticamente.
+- `app/src/main/java/com/vizinhoalerta/ui/perfil/PerfilScreen.kt`: linhas 86-118 — `pendingCameraUid` para capturar UID no momento do `launch()`.
+- `.superpowers/sdd/2026-11-23-ui-avatar-perfil/task-2-report.md`: linha 52 — contagem corrigida.
+
+### Comandos rodados
+
+```bash
+$ ./gradlew testDebugUnitTest --tests '*AuthRepositoryDemoTest*' --tests '*FotoPerfilTest*' --no-daemon
+BUILD SUCCESSFUL
+```
+
+```bash
+$ ./gradlew testDebugUnitTest assembleDebug --no-daemon
+BUILD SUCCESSFUL
+```
+
+### Verificação de testes
+
+```
+AuthErrorMessagesTest: 1
+AuthRepositoryDemoTest: 7
+BackendSelectorTest: 5
+DemoDataTest: 3
+FotoPerfilTest: 5
+OcorrenciaRepositoryDemoTest: 8
+OcorrenciaTest: 3
+UsuarioTest: 4
+LocalizacaoServiceTest: 4
+Total: 40 testes, 0 falhas, 0 erros
+```
+
+### Arquivos alterados no commit `6505c9f`
+
+- `app/src/main/java/com/vizinhoalerta/data/AuthRepository.kt`
+- `app/src/main/java/com/vizinhoalerta/ui/perfil/PerfilScreen.kt`
+- `.superpowers/sdd/2026-11-23-ui-avatar-perfil/task-2-report.md`
