@@ -78,8 +78,8 @@ Capturas do app rodando no emulador Android 14 (1080×2280).
 
 | | |
 |---|---|
-| <img src="docs/screenshots/08-welcome.png?v=2" alt="Welcome" width="240"> **Welcome** | <img src="docs/screenshots/09-login.png?v=2" alt="Login" width="240"> **Login** |
-| <img src="docs/screenshots/10-cadastro.png?v=2" alt="Cadastro" width="240"> **Cadastro** | <img src="docs/screenshots/01-perfil.png?v=2" alt="Perfil" width="240"> **Perfil** |
+| <img src="docs/screenshots/08-welcome.png?v=2" alt="Welcome" width="240"> **Welcome** | <img src="docs/screenshots/11-login-google.png" alt="Login com botão Continuar com Google" width="240"> **Login** |
+| <img src="docs/screenshots/12-cadastro-google.png" alt="Cadastro com botão Continuar com Google" width="240"> **Cadastro** | <img src="docs/screenshots/01-perfil.png?v=2" alt="Perfil" width="240"> **Perfil** |
 
 ### Uso diário
 
