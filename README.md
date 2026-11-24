@@ -18,7 +18,7 @@ Moradores registram situações suspeitas ou problemas urbanos (rua escura, vand
 - **MediaRecorder** para áudio de 15 segundos
 - **FusedLocationProviderClient** para GPS
 - **Firebase Auth + Firestore + Storage + Realtime Database**
-- **Google Sign-In** (login via Gmail)
+- **Google Sign-In** (Credential Manager + Firebase Auth)
 
 ## Estrutura
 ```
@@ -49,7 +49,7 @@ app/src/main/java/com/vizinhoalerta/
 
 ### Autenticação
 - Login e cadastro com email/senha
-- **Login via Google** (Gmail) com token de conexão
+- **Login via Google** com Credential Manager e Firebase Auth (sem linkagem automática de contas); conta nova conclui cidade/bairro antes do mapa
 - Validação de senha: 8+ chars, maiúscula, número, caractere especial
 - Perfil do usuário com cidade, bairro e foto de perfil (galeria ou câmera)
 
@@ -172,7 +172,7 @@ Para gerar um release, substitua o arquivo pelo `google-services.json` real do s
 4. Baixe o `google-services.json` → cole em `app/`
 5. Em **Authentication** → habilite métodos:
    - Email/Senha
-   - Google Sign-In
+   - Google (provider do Firebase Authentication; veja a configuração abaixo)
 6. Em **Firestore Database** → crie banco em modo **locked**
 7. Em **Storage** → crie bucket padrão
 8. Ative o **Realtime Database** (para token de conexão)
@@ -193,6 +193,32 @@ python3 scripts/seed_emulador.py
 
 O script é idempotente (IDs fixos) e pode ser executado novamente após reiniciar os emuladores. Login: `teste@exemplo.com` / `Teste@123`.
 
+## Login com Google (Credential Manager)
+
+O botão **Continuar com Google** aparece no Login e no Cadastro. O fluxo usa Credential Manager com `googleid`, autentica a sessão no Firebase Auth e usa o Firestore como fonte de verdade do onboarding: depois de entrar com uma conta nova, cidade e bairro são obrigatórios antes do mapa. Não há linkagem automática entre a conta do Google e uma conta preexistente por e-mail/senha.
+
+### Configuração com Firebase real
+
+1. Substitua `app/google-services.json` pelo arquivo real do projeto (o template DUMMY não habilita o Google). Confira que ele contém um `oauth_client` Web (`client_type: 3`) e `services.appinvite_service.other_platform_oauth_client` com o mesmo Web Client ID; é esse recurso que gera `default_web_client_id`.
+2. Registre as impressões **SHA-1 de debug e de release** no Firebase: **Project settings → Your apps → Add fingerprint**. A SHA-1 de debug costuma vir de `~/.android/debug.keystore`; a de release, da keystore usada para assinar o APK.
+3. Em **Authentication → Sign-in method**, habilite o provider **Google** e salve.
+4. Gere/Copie o **Web Client ID** na aba do provider e confirme que ele aparece como `oauth_client` Web no JSON baixado. Não é preciso colar o ID no código: o plugin `google-services` o expõe como `default_web_client_id`.
+
+> [!NOTE]
+> Desvio de versão aceito: `androidx.credentials:credentials:1.3.0`, `credentials-play-services-auth:1.3.0` e `googleid:1.1.1`. As versões 1.6.0/1.2.1 e o fallback 1.5.0 do plano exigem compileSdk 35 (1.6.0 também AGP 8.6+) e puxam `androidx.core 1.15.0`; este projeto fixa compileSdk 34 e AGP 8.5.1.
+
+### No demo (sem Firebase real ou sem Web Client ID válido)
+
+O botão exibe o aviso **"Login com Google exige Firebase configurado (google-services.json com OAuth Web)."** e **não autentica**. No demo, entre com `admin@demo.com` / `Demo@123` (ou `morador@demo.com` / `Demo@123`). Ocorrências e usuários do demo ficam **apenas em memória** e voltam ao estado inicial ao sair ou reiniciar o app; a foto de perfil é a exceção já descrita acima.
+
+### Checklist manual (requer dispositivo/emulador com Firebase real)
+
+- [ ] Toque em **Continuar com Google** no Login e no Cadastro: abre o seletor de conta do Google; cancelar retorna ao formulário sem logar.
+- [ ] Entre com uma conta Google nova: cria sessão no Firebase Auth e abre a tela de cidade/bairro; o mapa só aparece após a conclusão.
+- [ ] Tente entrar com Google usando um e-mail já cadastrado com senha: aparece a mensagem de conflito orientando a entrar com a senha; a conta não é linkada automaticamente.
+- [ ] Durante o onboarding, pressione **back**, reinicie o app e troque de conta: nenhum desses caminhos pula cidade/bairro.
+- [ ] Toque em **Sair**: encerra a sessão e limpa o hint/credencial do Credential Manager; um novo login com Google pede a conta novamente.
+
 ## Testes
 
 ### Testes Unitários
@@ -210,11 +236,21 @@ Testa:
 ```bash
 # Rodar testes de UI
 ./gradlew connectedDebugAndroidTest
+
+# Apenas o teste do botão Google no demo
+./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.vizinhoalerta.ui.GoogleButtonDemoTest
 ```
+Neste AGP, o lifecycle `connectedAndroidTest` não aceita `--tests`; use a propriedade `-Pandroid.testInstrumentationRunnerArguments.class=...` acima para filtrar uma classe.
 
 Testa:
-- `LoginFlowTest.kt` - fluxo de login/registro
+- `GoogleButtonDemoTest.kt` - aviso do botão Google no demo (Login e Cadastro)
 - `ValidationTest.kt` - validação de senha
+
+> [!WARNING]
+> O `LoginFlowTest.kt` pré-existente está desatualizado em relação ao fluxo atual de login/onboarding e está fora de escopo desta entrega. Não o use como referência do comportamento do Google.
+
+> [!NOTE]
+> Não havia AVD/dispositivo disponível neste ambiente: os testes instrumentados **não foram executados aqui**. O checklist manual acima cobre o que depende de dispositivo e Firebase real; nenhum sucesso de execução é afirmado.
 
 ## Stack
 Kotlin, Jetpack Compose, MapLibre (OpenStreetMap), CameraX, FusedLocation, Firebase (Auth, Firestore, Storage, Realtime DB), Google Sign-In
