@@ -29,7 +29,9 @@ fun PerfilScreen(
     authRepository: AuthRepository,
     onLogoutClick: () -> Unit,
     onAdminClick: () -> Unit,
-    onVoltar: () -> Unit
+    onVoltar: () -> Unit,
+    completarPerfil: Boolean = false,
+    onPerfilConcluido: () -> Unit = {}
 ) {
     var usuario by remember { mutableStateOf<Usuario?>(null) }
     var ehAdmin by remember { mutableStateOf(false) }
@@ -54,6 +56,10 @@ fun PerfilScreen(
     LaunchedEffect(Unit) {
         recarregar()
         ehAdmin = authRepository.isAdmin()
+    }
+
+    LaunchedEffect(completarPerfil) {
+        if (completarPerfil) editando = true
     }
 
     LaunchedEffect(usuario) {
@@ -128,8 +134,10 @@ fun PerfilScreen(
             TopAppBar(
                 title = { Text("Perfil", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = onVoltar) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
+                    if (!completarPerfil) {
+                        IconButton(onClick = onVoltar) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
+                        }
                     }
                 }
             )
@@ -185,15 +193,33 @@ fun PerfilScreen(
                         onClick = {
                             erro = null
                             mensagem = null
-                            carregando = true
-                            scope.launch {
-                                val result = authRepository.atualizarPerfil(nome, username, telefone, estado, cidade, bairro)
-                                carregando = false
-                                result.onSuccess {
-                                    mensagem = "Dados atualizados."
-                                    editando = false
-                                    scope.launch { recarregar() }
-                                }.onFailure { erro = it.localizedMessage }
+                            if (completarPerfil && (cidade.isBlank() || bairro.isBlank())) {
+                                erro = "Informe cidade e bairro."
+                            } else {
+                                val uid = authRepository.currentUid
+                                carregando = true
+                                scope.launch {
+                                    if (completarPerfil) {
+                                        val result = authRepository.atualizarLocalizacaoPerfil(cidade, bairro)
+                                        carregando = false
+                                        result.onSuccess {
+                                            uid?.let { uidAtual -> authRepository.limparOnboardingPendente(uidAtual) }
+                                            onPerfilConcluido()
+                                        }.onFailure {
+                                            editando = true
+                                            uid?.let { uidAtual -> authRepository.marcarOnboardingPendente(uidAtual) }
+                                            erro = it.localizedMessage ?: "Não foi possível salvar a localização."
+                                        }
+                                    } else {
+                                        val result = authRepository.atualizarPerfil(nome, username, telefone, estado, cidade, bairro)
+                                        carregando = false
+                                        result.onSuccess {
+                                            mensagem = "Dados atualizados."
+                                            editando = false
+                                            scope.launch { recarregar() }
+                                        }.onFailure { erro = it.localizedMessage }
+                                    }
+                                }
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -217,7 +243,7 @@ fun PerfilScreen(
                 erro?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp)) }
                 mensagem?.let { Text(it, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp)) }
 
-                if (ehAdmin) {
+                if (ehAdmin && !completarPerfil) {
                     Spacer(modifier = Modifier.height(16.dp))
                     PrimaryButton(
                         texto = "Painel Admin",

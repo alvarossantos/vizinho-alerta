@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.net.Uri
 import androidx.core.content.FileProvider
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.userProfileChangeRequest
@@ -17,6 +18,7 @@ import java.io.File
 
 internal fun formatAuthException(e: Exception): String {
     val message = e.message ?: ""
+    mensagemConflitoConta((e as? FirebaseAuthException)?.errorCode, message)?.let { return it }
     return when {
         message.contains("The email address is badly formatted", ignoreCase = true) ->
             "O formato do e-mail é inválido. Verifique se há espaços ou erros."
@@ -41,6 +43,20 @@ internal fun erroDisponibilidadeUsername(disponivel: Boolean?, username: String)
     null -> "Não foi possível validar a disponibilidade do username. Tente novamente."
 }
 
+internal suspend fun gerarUsernameUnico(
+    base: String,
+    disponivel: suspend (String) -> Boolean?
+): kotlin.Result<String> {
+    val candidatos = mutableListOf(base)
+    repeat(10) { candidatos.add(base + (100..999).random()) }
+    repeat(2) { candidatos.add(base + System.currentTimeMillis()) }
+
+    for (candidato in candidatos) {
+        if (disponivel(candidato) == true) return kotlin.Result.success(candidato)
+    }
+    return kotlin.Result.failure(Exception("Não foi possível gerar um username único. Tente novamente."))
+}
+
 class AuthRepository(
     private val demo: Boolean = false,
     private val auth: FirebaseAuth? = if (demo) null else FirebaseAuth.getInstance(),
@@ -50,6 +66,7 @@ class AuthRepository(
 
     private var demoUid: String? = null
     private val prefs: SharedPreferences? = context?.getSharedPreferences("perfil_fotos", Context.MODE_PRIVATE)
+    private val onboardingPrefs: SharedPreferences? = context?.getSharedPreferences("onboarding_google", Context.MODE_PRIVATE)
 
     val currentUser: FirebaseUser?
         get() = if (demo) null else auth?.currentUser
@@ -161,10 +178,8 @@ class AuthRepository(
                 return kotlin.Result.failure(Exception("Este e-mail já está cadastrado."))
             }
             val base = "@" + emailTrimmed.substringBefore("@").lowercase().replace(Regex("[^a-z0-9]"), "")
-            var username = base + (100..999).random()
-            while (isUsernameDisponivel(username) != true) {
-                username = base + (1000..9999).random()
-            }
+            val username = gerarUsernameUnico(base) { isUsernameDisponivel(it) }
+                .getOrElse { return kotlin.Result.failure(it) }
             val usuario = Usuario(
                 id = "demo-user-${DemoData.usuarios.size + 1}",
                 nome = nome.trim(),
@@ -184,10 +199,8 @@ class AuthRepository(
         return try {
             // Gera username único
             val baseUsername = "@" + emailTrimmed.substringBefore("@").lowercase().replace(Regex("[^a-z0-9]"), "")
-            var username = baseUsername + (100..999).random()
-            while (isUsernameDisponivel(username) != true) {
-                username = baseUsername + (1000..9999).random()
-            }
+            val username = gerarUsernameUnico(baseUsername) { isUsernameDisponivel(it) }
+                .getOrElse { return kotlin.Result.failure(it) }
 
             val result = auth!!.createUserWithEmailAndPassword(emailTrimmed, pass).await()
             val user = result.user ?: return kotlin.Result.failure(Exception("Falha ao criar usuário"))
@@ -223,7 +236,7 @@ class AuthRepository(
         }
     }
 
-    suspend fun signInWithGoogle(idToken: String): kotlin.Result<FirebaseUser> {
+    suspend fun signInWithGoogle(idToken: String): kotlin.Result<GoogleSignInResult> {
         if (demo) return kotlin.Result.failure(Exception("Login com Google indisponível no modo demo."))
         return try {
             val credential = GoogleAuthProvider.getCredential(idToken, null)
@@ -235,10 +248,9 @@ class AuthRepository(
             if (!doc.exists()) {
                 val nomeUser = user.displayName ?: "Morador"
                 val emailUser = user.email ?: ""
-                var username = "@" + emailUser.substringBefore("@").lowercase().replace(Regex("[^a-z0-9]"), "") + (100..999).random()
-                while (isUsernameDisponivel(username) != true) {
-                    username = "@" + emailUser.substringBefore("@").lowercase().replace(Regex("[^a-z0-9]"), "") + (1000..9999).random()
-                }
+                val base = "@" + emailUser.substringBefore("@").lowercase().replace(Regex("[^a-z0-9]"), "")
+                val username = gerarUsernameUnico(base) { isUsernameDisponivel(it) }
+                    .getOrElse { return kotlin.Result.failure(it) }
                 val usuario = Usuario(
                     id = user.uid,
                     nome = nomeUser,
@@ -248,10 +260,48 @@ class AuthRepository(
                 docRef.set(usuario).await()
             }
 
-            kotlin.Result.success(user)
+            kotlin.Result.success(GoogleSignInResult(user.uid, precisaCompletarPerfil(user.uid)))
         } catch (e: Exception) {
             kotlin.Result.failure(Exception(formatAuthException(e)))
         }
+    }
+
+    suspend fun atualizarLocalizacaoPerfil(cidade: String, bairro: String): kotlin.Result<Unit> {
+        val cidadeTrim = cidade.trim()
+        val bairroTrim = bairro.trim()
+        if (cidadeTrim.isBlank() || bairroTrim.isBlank()) {
+            return kotlin.Result.failure(Exception("Informe cidade e bairro."))
+        }
+
+        if (demo) {
+            val uid = demoUid ?: return kotlin.Result.failure(Exception("Usuário não logado"))
+            val index = DemoData.usuarios.indexOfFirst { it.id == uid }
+            if (index < 0) return kotlin.Result.failure(Exception("Usuário não encontrado"))
+            DemoData.usuarios[index] = DemoData.usuarios[index].copy(cidade = cidadeTrim, bairro = bairroTrim)
+            limparOnboardingPendente(uid)
+            return kotlin.Result.success(Unit)
+        }
+
+        return try {
+            val uid = auth?.currentUser?.uid ?: return kotlin.Result.failure(Exception("Usuário não logado"))
+            firestore!!.collection("usuarios").document(uid)
+                .update(mapOf("cidade" to cidadeTrim, "bairro" to bairroTrim))
+                .await()
+            limparOnboardingPendente(uid)
+            kotlin.Result.success(Unit)
+        } catch (e: Exception) {
+            kotlin.Result.failure(Exception(formatAuthException(e)))
+        }
+    }
+
+    suspend fun precisaCompletarPerfil(uid: String): Boolean = perfilIncompleto(getDadosUsuario(uid))
+
+    fun marcarOnboardingPendente(uid: String) {
+        onboardingPrefs?.edit()?.putBoolean("pendente:$uid", true)?.apply()
+    }
+
+    fun limparOnboardingPendente(uid: String) {
+        onboardingPrefs?.edit()?.remove("pendente:$uid")?.apply()
     }
 
     suspend fun atualizarPerfil(
@@ -430,6 +480,7 @@ class AuthRepository(
     }
 
     fun logout() {
+        currentUid?.let { limparOnboardingPendente(it) }
         if (demo) {
             demoUid = null
             DemoData.reset()

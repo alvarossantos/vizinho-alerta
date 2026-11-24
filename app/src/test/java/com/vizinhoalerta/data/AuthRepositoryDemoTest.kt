@@ -1,7 +1,9 @@
 package com.vizinhoalerta.data
 
+import com.vizinhoalerta.model.Usuario
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -60,5 +62,30 @@ class AuthRepositoryDemoTest {
     @Test fun `falha ao consultar username nao e tratada como disponivel`() {
         val erro = erroDisponibilidadeUsername(null, "@novo")
         assertTrue(erro != null && erro.contains("Não foi possível validar"))
+    }
+
+    @Test fun `conclusao do onboarding altera apenas cidade e bairro`() = runBlocking {
+        repo.login(DemoData.ADMIN_EMAIL, DemoData.SENHA_DEMO)
+        val antes = repo.getDadosUsuario("demo-admin")!!
+        assertTrue(repo.atualizarLocalizacaoPerfil("Passos", "Centro").isSuccess)
+        val depois = repo.getDadosUsuario("demo-admin")!!
+        assertEquals(antes.nome, depois.nome)
+        assertEquals(antes.username, depois.username)
+        assertEquals("Passos", depois.cidade)
+        assertEquals("Centro", depois.bairro)
+    }
+
+    @Test fun `conclusao rejeita cidade ou bairro vazios`() = runBlocking {
+        repo.login(DemoData.ADMIN_EMAIL, DemoData.SENHA_DEMO)
+        assertTrue(repo.atualizarLocalizacaoPerfil("", "Centro").isFailure)
+        assertTrue(repo.atualizarLocalizacaoPerfil("Cássia", " ").isFailure)
+    }
+
+    @Test fun `precisa completar perfil e recalculado por uid`() = runBlocking {
+        repo.login(DemoData.ADMIN_EMAIL, DemoData.SENHA_DEMO)
+        assertFalse(repo.precisaCompletarPerfil("demo-admin"))
+        DemoData.usuarios.add(Usuario(id = "outro-uid", nome = "Outro", username = "@outro", email = "outro@demo.com"))
+        assertTrue(repo.precisaCompletarPerfil("outro-uid"))
+        assertTrue(repo.precisaCompletarPerfil("uid-inexistente"))
     }
 }
