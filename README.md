@@ -82,6 +82,7 @@ Capturas do app rodando no emulador Android 14 (1080×2280).
 | <img src="docs/screenshots/06-lista.png" alt="Lista" width="240"> **Lista** | <img src="docs/screenshots/07-detalhes.png" alt="Detalhes" width="240"> **Detalhes** |
 | <img src="docs/screenshots/01-perfil.png" alt="Perfil" width="240"> **Perfil (admin)** | <img src="docs/screenshots/02-admin.png" alt="Painel Admin" width="240"> **Admin — ocorrências** |
 | <img src="docs/screenshots/08-admin-usuarios.png" alt="Admin — usuários" width="240"> **Admin — usuários** | |
+| <img src="docs/screenshots/03-mapa-inteiro.png" alt="Mapa sem overlay" width="240"> **Mapa — visão ampla (sem filtros)** | |
 
 ## Regras de Segurança (Firestore & Storage)
 
