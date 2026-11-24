@@ -85,7 +85,7 @@ Capturas do app rodando no emulador Android 14 (1080×2280).
 
 | | |
 |---|---|
-| <img src="docs/screenshots/03-mapa.png?v=2" alt="Mapa" width="240"> **Mapa** | <img src="docs/screenshots/03-mapa-inteiro.png?v=2" alt="Mapa em visão ampla" width="240"> **Mapa — visão ampla** |
+| <img src="docs/screenshots/03-mapa-v2.png" alt="Mapa" width="240"> **Mapa** | <img src="docs/screenshots/03-mapa-inteiro-v2.png" alt="Mapa em visão ampla" width="240"> **Mapa — visão ampla** |
 | <img src="docs/screenshots/06-lista.png?v=2" alt="Lista" width="240"> **Lista de ocorrências** | <img src="docs/screenshots/07-detalhes.png?v=2" alt="Detalhes" width="240"> **Detalhes da ocorrência** |
 | <img src="docs/screenshots/04-reportar.png?v=2" alt="Nova ocorrência" width="240"> **Nova ocorrência** | <img src="docs/screenshots/05-reportar-midia.png?v=2" alt="Mídia e envio" width="240"> **Mídia e envio** |
 
