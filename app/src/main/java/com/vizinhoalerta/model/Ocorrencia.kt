@@ -24,3 +24,12 @@ data class Ocorrencia(
         const val SITUACAO_REJEITADO = "rejeitado"
     }
 }
+
+fun rotuloSituacao(situacao: String): String = when (situacao) {
+    Ocorrencia.SITUACAO_REGISTRADO -> "Registrado"
+    Ocorrencia.SITUACAO_EM_VERIFICACAO -> "Em verificação"
+    Ocorrencia.SITUACAO_CONFIRMADO -> "Confirmado"
+    Ocorrencia.SITUACAO_RESOLVIDO -> "Resolvido"
+    Ocorrencia.SITUACAO_REJEITADO -> "Rejeitado"
+    else -> situacao.replace('_', ' ').replaceFirstChar { it.uppercase() }
+}

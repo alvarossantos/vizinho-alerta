@@ -6,6 +6,15 @@ import org.junit.Test
 class OcorrenciaTest {
 
     @Test
+    fun `rotulo da situacao e legivel`() {
+        assertEquals("Registrado", rotuloSituacao(Ocorrencia.SITUACAO_REGISTRADO))
+        assertEquals("Em verificação", rotuloSituacao(Ocorrencia.SITUACAO_EM_VERIFICACAO))
+        assertEquals("Confirmado", rotuloSituacao(Ocorrencia.SITUACAO_CONFIRMADO))
+        assertEquals("Resolvido", rotuloSituacao(Ocorrencia.SITUACAO_RESOLVIDO))
+        assertEquals("Rejeitado", rotuloSituacao(Ocorrencia.SITUACAO_REJEITADO))
+    }
+
+    @Test
     fun `criar ocorrencia com valores padrao`() {
         val ocorrencia = Ocorrencia()
         

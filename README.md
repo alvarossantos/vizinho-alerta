@@ -74,15 +74,26 @@ Welcome → Login → Mapa → Reportar/Detalhes/Lista/Perfil/Admin
 
 Capturas do app rodando no emulador Android 14 (1080×2280).
 
+### Acesso
+
 | | |
 |---|---|
-| <img src="docs/screenshots/08-welcome.png" alt="Welcome" width="240"> **Welcome** | <img src="docs/screenshots/09-login.png" alt="Login" width="240"> **Login** |
-| <img src="docs/screenshots/10-cadastro.png" alt="Cadastro" width="240"> **Cadastro** | <img src="docs/screenshots/03-mapa.png" alt="Mapa" width="240"> **Mapa** |
-| <img src="docs/screenshots/04-reportar.png" alt="Nova ocorrência" width="240"> **Nova ocorrência** | <img src="docs/screenshots/05-reportar-midia.png" alt="Mídia e envio" width="240"> **Mídia e envio** |
-| <img src="docs/screenshots/06-lista.png" alt="Lista" width="240"> **Lista** | <img src="docs/screenshots/07-detalhes.png" alt="Detalhes" width="240"> **Detalhes** |
-| <img src="docs/screenshots/01-perfil.png" alt="Perfil" width="240"> **Perfil (admin)** | <img src="docs/screenshots/02-admin.png" alt="Painel Admin" width="240"> **Admin — ocorrências** |
-| <img src="docs/screenshots/08-admin-usuarios.png" alt="Admin — usuários" width="240"> **Admin — usuários** | |
-| <img src="docs/screenshots/03-mapa-inteiro.png" alt="Mapa sem overlay" width="240"> **Mapa — visão ampla (sem filtros)** | |
+| <img src="docs/screenshots/08-welcome.png?v=2" alt="Welcome" width="240"> **Welcome** | <img src="docs/screenshots/09-login.png?v=2" alt="Login" width="240"> **Login** |
+| <img src="docs/screenshots/10-cadastro.png?v=2" alt="Cadastro" width="240"> **Cadastro** | <img src="docs/screenshots/01-perfil.png?v=2" alt="Perfil" width="240"> **Perfil** |
+
+### Uso diário
+
+| | |
+|---|---|
+| <img src="docs/screenshots/03-mapa.png?v=2" alt="Mapa" width="240"> **Mapa** | <img src="docs/screenshots/03-mapa-inteiro.png?v=2" alt="Mapa em visão ampla" width="240"> **Mapa — visão ampla** |
+| <img src="docs/screenshots/06-lista.png?v=2" alt="Lista" width="240"> **Lista de ocorrências** | <img src="docs/screenshots/07-detalhes.png?v=2" alt="Detalhes" width="240"> **Detalhes da ocorrência** |
+| <img src="docs/screenshots/04-reportar.png?v=2" alt="Nova ocorrência" width="240"> **Nova ocorrência** | <img src="docs/screenshots/05-reportar-midia.png?v=2" alt="Mídia e envio" width="240"> **Mídia e envio** |
+
+### Administração
+
+| | |
+|---|---|
+| <img src="docs/screenshots/02-admin.png?v=2" alt="Admin — ocorrências" width="240"> **Admin — ocorrências** | <img src="docs/screenshots/08-admin-usuarios.png?v=2" alt="Admin — usuários" width="240"> **Admin — usuários** |
 
 ## Regras de Segurança (Firestore & Storage)
 
