@@ -51,13 +51,14 @@ app/src/main/java/com/vizinhoalerta/
 - Login e cadastro com email/senha
 - **Login via Google** (Gmail) com token de conexão
 - Validação de senha: 8+ chars, maiúscula, número, caractere especial
-- Perfil do usuário com cidade e bairro
+- Perfil do usuário com cidade, bairro e foto de perfil (galeria ou câmera)
 
 ### Mapa e Localização
 - **Mapa com localização do usuário em azul** (Blue Dot)
 - Botão "Local Atual" → recente a câmera para a posição do usuário
 - Clique no mapa → menu de confirmação da escolha do local
 - Escolha local: clique no mapa ou use GPS automático
+- Busca textual e filtros por categoria (Todas, Segurança, Infra, Suspeita), com cartão flutuante da ocorrência
 
 ### Ocorrências
 - Nova ocorrência: foto + áudio + GPS + cidade + bairro customizado
@@ -108,10 +109,13 @@ As regras de segurança estão em `storage.rules`:
 | `fotos/{uid}/{file}` | Escrita | **Só o dono** (auth.uid == uid) |
 | `audios/{uid}/{file}` | Leitura | Usuário autenticado |
 | `audios/{uid}/{file}` | Escrita | **Só o dono** (auth.uid == uid) |
+| `perfil/{uid}/{file}` | Leitura | Usuário autenticado |
+| `perfil/{uid}/{file}` | Escrita | **Só o dono** (auth.uid == uid) |
 
 #### Limites de tamanho
-- **Fotos:** ≤ 5 MB, tipo MIME `image/*`
+- **Fotos de ocorrência:** ≤ 5 MB, tipo MIME `image/*`
 - **Áudios:** ≤ 2 MB, tipo MIME `audio/*`
+- **Foto de perfil:** ≤ 2 MB, tipos MIME `image/jpeg` ou `image/png`
 
 ### Configuração de Admin (Custom Claims)
 Para habilitar o painel administrativo, configure Custom Claims no Firebase:
@@ -127,7 +131,7 @@ Isso permite que o usuário com UID especificado altere/remova ocorrências de o
 
 ### Painel Admin (`/admin`)
 - Abas **Ocorrências** e **Usuários**
-- Listagem de todas as ocorrências (todas as situações, inclusive rejeitado) e de todos os usuários (nome, e-mail e função)
+- Listagem de todas as ocorrências (todas as situações, inclusive rejeitado) e de todos os usuários (avatar, nome, e-mail e função)
 - Alteração de estados: registrado, em verificação, confirmado, resolvido, rejeitado
 - Exclusão de ocorrências com limpeza automática de mídia
 - Acesso restrito a administradores, via Perfil → **Painel Admin**
@@ -143,7 +147,7 @@ Ao excluir uma ocorrência via Admin, o sistema também remove:
 Se você não tiver um `google-services.json` próprio, não precisa fornecer nada: o build gera `app/google-services.json` automaticamente a partir do template `app/google-services.example.json` (com chave fictícia `DUMMY`). Isso basta para rodar o **debug**, que aponta para os emuladores locais (Auth `9099`, Firestore `8081`, Storage `9199`).
 
 > [!IMPORTANT]
-> **Modo demo (somente debug):** sem `app/google-services.json` real **ou** sem os emuladores locais rodando, o app detecta a ausência do Firebase e entra automaticamente no **modo demo**. Entre com `admin@demo.com` / `Demo@123` (ou `morador@demo.com` / `Demo@123`). O demo tem 5 ocorrências em Cássia/Passos e usuários de exemplo; tudo fica **apenas em memória** — ao tocar em **Sair** ou encerrar o app, volta ao padrão do repositório. A build de **release nunca** usa demo e exige Firebase real.
+> **Modo demo (somente debug):** sem `app/google-services.json` real **ou** sem os emuladores locais rodando, o app detecta a ausência do Firebase e entra automaticamente no **modo demo**. Entre com `admin@demo.com` / `Demo@123` (ou `morador@demo.com` / `Demo@123`). O demo tem 5 ocorrências em Cássia/Passos e usuários de exemplo; ocorrências e usuários ficam **apenas em memória** — ao tocar em **Sair** ou encerrar o app, voltam ao padrão do repositório. A **foto de perfil** é a exceção: no demo fica salva em arquivo local + `SharedPreferences` e sobrevive ao **Sair** e ao reinício. A build de **release nunca** usa demo e exige Firebase real.
 
 Para gerar um release, substitua o arquivo pelo `google-services.json` real do seu projeto Firebase. Se a chave fictícia ainda estiver presente, o build falha com a mensagem: `Release exige um google-services.json real (sem DUMMY)`.
 
