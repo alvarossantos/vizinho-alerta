@@ -28,7 +28,9 @@ class LoginDemoLayoutTest {
             "linha demo deve ficar abaixo do botao Continuar com Google"
         }
 
-        composeRule.activity.onBackPressedDispatcher.onBackPressed()
+        composeRule.runOnUiThread {
+            composeRule.activity.onBackPressedDispatcher.onBackPressed()
+        }
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Cadastrar-se").performClick()
         composeRule.waitForIdle()

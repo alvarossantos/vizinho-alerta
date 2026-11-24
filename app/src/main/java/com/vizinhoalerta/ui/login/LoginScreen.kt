@@ -110,10 +110,6 @@ fun LoginScreen(
                 enabled = !carregando,
                 carregando = carregando
             )
-            if (modoDemo) {
-                Spacer(Modifier.height(8.dp))
-                Text("Demo: admin@demo.com / Demo@123", fontSize = 12.sp)
-            }
             GoogleSignInButton(
                 googleSignIn = googleSignIn,
                 authRepository = authRepository,
@@ -124,6 +120,10 @@ fun LoginScreen(
             )
             Spacer(Modifier.height(8.dp))
             TextButton(onClick = onCadastrarClick) { Text("Não tem conta? Cadastrar") }
+            if (modoDemo) {
+                Spacer(Modifier.height(8.dp))
+                Text("Demo: admin@demo.com / Demo@123", fontSize = 12.sp)
+            }
         }
     }
 }
