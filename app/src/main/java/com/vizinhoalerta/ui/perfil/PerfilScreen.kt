@@ -228,13 +228,8 @@ fun PerfilScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedButton(
                     onClick = onLogoutClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(width = 1.dp, color = MaterialTheme.colorScheme.error, shape = CircleShape),
-                    shape = CircleShape,
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = CircleShape
                 ) {
                     Text("Sair")
                 }

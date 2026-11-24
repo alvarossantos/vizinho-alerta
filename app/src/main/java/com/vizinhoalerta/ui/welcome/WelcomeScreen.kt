@@ -18,7 +18,6 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vizinhoalerta.ui.components.PrimaryButton
-import com.vizinhoalerta.ui.theme.VizinhoAlertaTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
