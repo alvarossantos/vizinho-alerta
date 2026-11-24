@@ -243,7 +243,7 @@ fun PerfilScreen(
                 erro?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp)) }
                 mensagem?.let { Text(it, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp)) }
 
-                if (ehAdmin) {
+                if (ehAdmin && !completarPerfil) {
                     Spacer(modifier = Modifier.height(16.dp))
                     PrimaryButton(
                         texto = "Painel Admin",
