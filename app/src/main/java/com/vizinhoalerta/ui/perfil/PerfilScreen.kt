@@ -3,9 +3,11 @@ package com.vizinhoalerta.ui.perfil
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
@@ -18,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.vizinhoalerta.data.AuthRepository
 import com.vizinhoalerta.model.Usuario
 import com.vizinhoalerta.ui.components.Avatar
+import com.vizinhoalerta.ui.components.PrimaryButton
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -177,7 +180,8 @@ fun PerfilScreen(
                     OutlinedTextField(value = cidade, onValueChange = { cidade = it }, label = { Text("Cidade") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                     OutlinedTextField(value = bairro, onValueChange = { bairro = it }, label = { Text("Bairro") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(
+                    PrimaryButton(
+                        texto = if (carregando) "Salvando..." else "Salvar",
                         onClick = {
                             erro = null
                             mensagem = null
@@ -192,15 +196,21 @@ fun PerfilScreen(
                                 }.onFailure { erro = it.localizedMessage }
                             }
                         },
+                        modifier = Modifier.fillMaxWidth(),
                         enabled = !carregando,
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text(if (carregando) "Salvando..." else "Salvar") }
-                    TextButton(onClick = { editando = false }) { Text("Cancelar") }
+                        carregando = carregando
+                    )
+                    OutlinedButton(
+                        onClick = { editando = false },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = CircleShape
+                    ) { Text("Cancelar") }
                 } else {
                     Spacer(modifier = Modifier.height(24.dp))
                     OutlinedButton(
                         onClick = { erro = null; mensagem = null; editando = true },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = CircleShape
                     ) { Text("Editar dados") }
                 }
 
@@ -209,16 +219,24 @@ fun PerfilScreen(
 
                 if (ehAdmin) {
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = onAdminClick, modifier = Modifier.fillMaxWidth()) {
-                        Text("Painel Admin")
-                    }
+                    PrimaryButton(
+                        texto = "Painel Admin",
+                        onClick = onAdminClick,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedButton(
                     onClick = onLogoutClick,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(width = 1.dp, color = MaterialTheme.colorScheme.error, shape = CircleShape),
+                    shape = CircleShape,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
                 ) {
-                    Text("Sair", color = MaterialTheme.colorScheme.error)
+                    Text("Sair")
                 }
             }
 
