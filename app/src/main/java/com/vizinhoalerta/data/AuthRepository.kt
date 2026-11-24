@@ -395,13 +395,13 @@ class AuthRepository(
             file.writeBytes(bytes)
             val absolutePath = file.absolutePath
             prefs?.edit()?.putString(uid, absolutePath)?.apply()
-            
+
             // Atualiza a lista DemoData
             val index = DemoData.usuarios.indexOfFirst { it.id == uid }
             if (index >= 0) {
                 DemoData.usuarios[index] = DemoData.usuarios[index].copy(fotoUrl = absolutePath)
             }
-            
+
             return kotlin.Result.success(absolutePath)
         }
 
