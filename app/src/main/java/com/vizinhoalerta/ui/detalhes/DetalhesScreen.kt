@@ -31,6 +31,8 @@ import com.vizinhoalerta.data.OcorrenciaRepository
 import com.vizinhoalerta.model.Ocorrencia
 import com.vizinhoalerta.service.AudioService
 import com.vizinhoalerta.ui.mapa.MapaEstilo
+import com.vizinhoalerta.ui.components.Avatar
+import com.vizinhoalerta.ui.components.StatusBadge
 import kotlinx.coroutines.launch
 import org.maplibre.android.MapLibre
 import org.maplibre.android.WellKnownTileServer
@@ -154,18 +156,9 @@ fun DetalhesScreen(
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold
                                 )
-                                SuggestionChip(
-                                    onClick = { },
-                                    label = {
-                                        Text(
-                                            if (isResolvido) "RESOLVIDO" else "ABERTO",
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    },
-                                    colors = SuggestionChipDefaults.suggestionChipColors(
-                                        containerColor = if (isResolvido) Color(0xFFE8F5E9) else Color(0xFFFFEBEE),
-                                        labelColor = if (isResolvido) Color(0xFF2E7D32) else Color(0xFFC62828)
-                                    )
+                                StatusBadge(
+                                    texto = if (isResolvido) "RESOLVIDO" else "ABERTO",
+                                    cor = if (isResolvido) Color(0xFF2E7D32) else Color(0xFFC62828)
                                 )
                             }
 
@@ -200,6 +193,29 @@ fun DetalhesScreen(
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.outline,
                                     modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
+
+                            // Autor
+                            var autorFoto by remember { mutableStateOf<String?>(null) }
+                            LaunchedEffect(o.userId) {
+                                val usuario = authRepository.getDadosUsuario(o.userId)
+                                autorFoto = usuario?.fotoUrl?.takeIf { it.isNotBlank() }
+                            }
+                            Row(
+                                modifier = Modifier.padding(top = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Avatar(
+                                    nome = o.usuarioNome.ifBlank { "?" },
+                                    fotoUrl = autorFoto,
+                                    tamanho = 28.dp
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = o.usuarioNome.ifBlank { "Autor desconhecido" },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }

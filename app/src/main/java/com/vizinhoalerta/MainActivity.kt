@@ -39,6 +39,7 @@ import com.vizinhoalerta.ui.detalhes.DetalhesScreen
 import com.vizinhoalerta.ui.lista.OcorrenciasListScreen
 import com.vizinhoalerta.ui.login.LoginScreen
 import com.vizinhoalerta.ui.mapa.MapaScreen
+import com.vizinhoalerta.ui.mapa.FiltroOcorrencias
 import com.vizinhoalerta.ui.perfil.PerfilScreen
 import com.vizinhoalerta.ui.reportar.ReportarScreen
 import com.vizinhoalerta.ui.welcome.WelcomeScreen
@@ -121,6 +122,8 @@ fun VizinhoAlertaApp(modo: BackendSelector.Mode, context: Context) {
         { /* empty */ }
     }
 
+    var filtro by remember { mutableStateOf(FiltroOcorrencias()) }
+
     Scaffold(
         bottomBar = bottomBarContent
     ) { innerPadding ->
@@ -165,6 +168,8 @@ fun VizinhoAlertaApp(modo: BackendSelector.Mode, context: Context) {
                 MapaScreen(
                     ocorrenciaRepository = ocorrenciaRepository,
                     authRepository = authRepository,
+                    filtro = filtro,
+                    onFiltroChange = { filtro = it },
                     onNovaOcorrenciaClick = { navController.navigate("reportar") },
                     onOcorrenciaClick = { id -> navController.navigate("detalhes/$id") },
                     onLogoutClick = {
@@ -191,6 +196,8 @@ fun VizinhoAlertaApp(modo: BackendSelector.Mode, context: Context) {
             composable("lista_ocorrencias") {
                 OcorrenciasListScreen(
                     ocorrenciaRepository = ocorrenciaRepository,
+                    filtro = filtro,
+                    authRepository = authRepository,
                     onVoltar = { navController.popBackStack() },
                     onOcorrenciaClick = { id -> navController.navigate("detalhes/$id") }
                 )
