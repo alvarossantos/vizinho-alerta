@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vizinhoalerta.MainActivity
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -24,9 +25,10 @@ class LoginDemoLayoutTest {
         val googleLoginTop = composeRule.onNodeWithText("Continuar com Google").getBoundsInRoot().top
         val demoTop = composeRule.onNodeWithText("Demo: admin@demo.com / Demo@123").getBoundsInRoot().top
 
-        assert(demoTop > googleLoginTop) {
-            "linha demo deve ficar abaixo do botao Continuar com Google"
-        }
+        assertTrue(
+            "linha demo deve ficar abaixo do botao Continuar com Google",
+            demoTop > googleLoginTop
+        )
 
         composeRule.runOnUiThread {
             composeRule.activity.onBackPressedDispatcher.onBackPressed()
@@ -40,8 +42,9 @@ class LoginDemoLayoutTest {
 
         val gapLogin = googleLoginTop - entrarBottom
         val gapCadastro = googleCadastroTop - criarBottom
-        assert(gapLogin == gapCadastro) {
-            "distancia ENTRAR->Google no login ($gapLogin) deve igualar Criar minha conta->Google no cadastro ($gapCadastro)"
-        }
+        assertTrue(
+            "distancia ENTRAR->Google no login ($gapLogin) deve igualar Criar minha conta->Google no cadastro ($gapCadastro)",
+            gapLogin == gapCadastro
+        )
     }
 }
