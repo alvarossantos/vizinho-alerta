@@ -43,6 +43,9 @@ class FiltroOcorrenciasTest {
     @Test
     fun `categoria seguranca so aceita tipos de seguranca`() {
         assertTrue(FiltroOcorrencias(categoria = CategoriaFiltro.SEGURANCA).match(Ocorrencia(tipo = "Briga")))
+        assertTrue(FiltroOcorrencias(categoria = CategoriaFiltro.SEGURANCA).match(Ocorrencia(tipo = "Vandalismo")))
+        assertTrue(FiltroOcorrencias(categoria = CategoriaFiltro.SEGURANCA).match(Ocorrencia(tipo = "Animal perigoso")))
+        assertTrue(FiltroOcorrencias(categoria = CategoriaFiltro.SEGURANCA).match(suspeita)) // Suspeita está em SEGURANCA per brief
         assertFalse(FiltroOcorrencias(categoria = CategoriaFiltro.SEGURANCA).match(iluminacao))
     }
 }

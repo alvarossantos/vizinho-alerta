@@ -3,9 +3,11 @@ package com.vizinhoalerta.ui.theme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +39,18 @@ private val LightColorScheme = lightColorScheme(
     error = Vermelho,
 )
 
+private val DarkColorScheme = darkColorScheme(
+    primary = Laranja,
+    onPrimary = Color.White,
+    secondary = Marinho,
+    onSecondary = Color.White,
+    surface = Color(0xFF1E1E1E),
+    background = Color(0xFF121212),
+    error = Color(0xFFEF5350),
+    tertiary = Color(0xFF81C784),
+    outline = Borda,
+)
+
 val Shapes = Shapes(
     extraSmall = CircleShape,
     extraLarge = RoundedCornerShape(28.dp),
@@ -44,8 +58,10 @@ val Shapes = Shapes(
 
 @Composable
 fun VizinhoAlertaTheme(content: @Composable () -> Unit) {
+    val uiMode = LocalConfiguration.current.uiMode
+    val isNightMode = (uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
     MaterialTheme(
-        colorScheme = LightColorScheme,
+        colorScheme = if (isNightMode) DarkColorScheme else LightColorScheme,
         shapes = Shapes,
         typography = Typography(),
         content = content
