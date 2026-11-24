@@ -380,8 +380,7 @@ class AuthRepository(
         val contentResolver = ctx.contentResolver
         val inputStream = contentResolver.openInputStream(uri) ?: return kotlin.Result.failure(Exception("Não foi possível ler a imagem selecionada"))
 
-        val bytes = inputStream.readBytes()
-        inputStream.close()
+        val bytes = inputStream.use { it.readBytes() }
 
         val mime = contentResolver.getType(uri) ?: "image/jpeg"
         val erroValidacao = validarImagemPerfil(mime, bytes.size)

@@ -83,10 +83,11 @@ fun PerfilScreen(
         uri?.let { processarFotoSelecionada(it) }
     }
 
-    // Captura de foto pela câmera
+    // Captura de foto pela câmera - captura UID no lançamento para evitar valor stale no resultado
+    var pendingCameraUid by remember { mutableStateOf<String?>(null) }
     val seletorCamera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { sucesso: Boolean ->
         if (sucesso) {
-            val uid = authRepository.currentUid ?: return@rememberLauncherForActivityResult
+            val uid = pendingCameraUid ?: return@rememberLauncherForActivityResult
             val dir = context.cacheDir.resolve("perfil_camera")
             val file = java.io.File(dir, "$uid.jpg")
             val uri = androidx.core.content.FileProvider.getUriForFile(
@@ -96,6 +97,7 @@ fun PerfilScreen(
             )
             processarFotoSelecionada(uri)
         }
+        pendingCameraUid = null
     }
 
     fun abrirGaleria() {
@@ -105,6 +107,7 @@ fun PerfilScreen(
 
     fun abrirCamera() {
         val uid = authRepository.currentUid ?: return
+        pendingCameraUid = uid
         val dir = context.cacheDir.resolve("perfil_camera")
         dir.mkdirs()
         val file = java.io.File(dir, "$uid.jpg")
