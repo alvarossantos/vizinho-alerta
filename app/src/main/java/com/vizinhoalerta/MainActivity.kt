@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.content.Context
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +33,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.vizinhoalerta.data.AuthRepository
 import com.vizinhoalerta.data.BackendSelector
+import com.vizinhoalerta.data.GoogleSignInHelper
 import com.vizinhoalerta.data.OcorrenciaRepository
 import com.vizinhoalerta.ui.admin.AdminScreen
 import com.vizinhoalerta.ui.cadastro.CadastroScreen
@@ -97,15 +99,43 @@ fun VizinhoAlertaApp(modo: BackendSelector.Mode, context: Context) {
     val demo = modo == BackendSelector.Mode.DEMO
     val authRepository = remember(modo) { AuthRepository(demo = demo, context = context) }
     val ocorrenciaRepository = remember(modo) { OcorrenciaRepository(demo = demo, authRepository = authRepository) }
+    val googleSignIn = remember(context) { GoogleSignInHelper(context) }
     val navController = rememberNavController()
-    val startDestination = remember {
-        if (authRepository.currentUid != null) "mapa" else "welcome"
+    val scope = rememberCoroutineScope()
+    var completarPerfil by remember { mutableStateOf(false) }
+    var startDestination by remember { mutableStateOf<String?>(null) }
+
+    BackHandler(enabled = completarPerfil) { }
+
+    LaunchedEffect(modo) {
+        val uid = authRepository.currentUid
+        val destino = when {
+            uid == null -> "welcome"
+            authRepository.precisaCompletarPerfil(uid) -> "perfil"
+            else -> "mapa"
+        }
+        if (destino == "perfil") completarPerfil = true
+        startDestination = destino
     }
+
+    fun sair() {
+        val uid = authRepository.currentUid
+        uid?.let { authRepository.limparOnboardingPendente(it) }
+        authRepository.logout()
+        scope.launch { googleSignIn.clearCredentialState() }
+        completarPerfil = false
+        navController.navigate("welcome") {
+            popUpTo(0) { inclusive = true }
+        }
+    }
+
+    val destinoInicial = startDestination
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    val rotasSemBottomNav = setOf("welcome", "login", "cadastro")
+    val rotasSemBottomNav = setOf("welcome", "login", "cadastro") +
+        if (completarPerfil) setOf("perfil") else emptySet()
     val mostrarBottomNav = currentRoute?.let { route ->
         rotasSemBottomNav.none { route.startsWith(it) }
     } ?: false
@@ -127,129 +157,147 @@ fun VizinhoAlertaApp(modo: BackendSelector.Mode, context: Context) {
     Scaffold(
         bottomBar = bottomBarContent
     ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = startDestination,
-            modifier = Modifier.padding(innerPadding)
-        ) {
-            composable("welcome") {
-                WelcomeScreen(
-                    onLoginClick = { navController.navigate("login") },
-                    onCadastrarClick = { navController.navigate("cadastro") }
-                )
+        if (destinoInicial == null) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
+        } else {
+            NavHost(
+                navController = navController,
+                startDestination = destinoInicial,
+                modifier = Modifier.padding(innerPadding)
+            ) {
+                composable("welcome") {
+                    WelcomeScreen(
+                        onLoginClick = { navController.navigate("login") },
+                        onCadastrarClick = { navController.navigate("cadastro") }
+                    )
+                }
 
-            composable("login") {
-                LoginScreen(
-                    authRepository = authRepository,
-                    modoDemo = demo,
-                    onLoginSucesso = {
-                        navController.navigate("mapa") {
-                            popUpTo("welcome") { inclusive = true }
+                composable("login") {
+                    LoginScreen(
+                        authRepository = authRepository,
+                        modoDemo = demo,
+                        googleSignIn = googleSignIn,
+                        onGoogleSucesso = { incompleto ->
+                            completarPerfil = incompleto
+                            navController.navigate(if (incompleto) "perfil" else "mapa") {
+                                popUpTo("welcome") { inclusive = true }
+                            }
+                        },
+                        onLoginSucesso = {
+                            navController.navigate("mapa") {
+                                popUpTo("welcome") { inclusive = true }
+                            }
+                        },
+                        onCadastrarClick = { navController.navigate("cadastro") }
+                    )
+                }
+
+                composable("cadastro") {
+                    CadastroScreen(
+                        authRepository = authRepository,
+                        modoDemo = demo,
+                        googleSignIn = googleSignIn,
+                        onGoogleSucesso = { incompleto ->
+                            completarPerfil = incompleto
+                            navController.navigate(if (incompleto) "perfil" else "mapa") {
+                                popUpTo("welcome") { inclusive = true }
+                            }
+                        },
+                        onCadastroSucesso = {
+                            navController.navigate("mapa") {
+                                popUpTo("welcome") { inclusive = true }
+                            }
+                        },
+                        onLoginClick = { navController.navigate("login") }
+                    )
+                }
+
+                composable("mapa") {
+                    MapaScreen(
+                        ocorrenciaRepository = ocorrenciaRepository,
+                        authRepository = authRepository,
+                        filtro = filtro,
+                        onFiltroChange = { filtro = it },
+                        onNovaOcorrenciaClick = { navController.navigate("reportar") },
+                        onOcorrenciaClick = { id -> navController.navigate("detalhes/$id") },
+                        onLogoutClick = { sair() },
+                        onListaClick = { navController.navigate("lista_ocorrencias") },
+                        onProfileClick = { navController.navigate("perfil") },
+                        onConfirmLocation = { lat, lng -> /* handle */ }
+                    )
+                }
+
+                composable("reportar") {
+                    ReportarScreen(
+                        ocorrenciaRepository = ocorrenciaRepository,
+                        authRepository = authRepository,
+                        onSucesso = { navController.popBackStack() },
+                        onVoltar = { navController.popBackStack() }
+                    )
+                }
+
+                composable("lista_ocorrencias") {
+                    OcorrenciasListScreen(
+                        ocorrenciaRepository = ocorrenciaRepository,
+                        filtro = filtro,
+                        authRepository = authRepository,
+                        onVoltar = { navController.popBackStack() },
+                        onOcorrenciaClick = { id -> navController.navigate("detalhes/$id") }
+                    )
+                }
+
+                composable("perfil") {
+                    PerfilScreen(
+                        authRepository = authRepository,
+                        onLogoutClick = { sair() },
+                        onAdminClick = { navController.navigate("admin") },
+                        onVoltar = { navController.popBackStack() },
+                        completarPerfil = completarPerfil,
+                        onPerfilConcluido = {
+                            completarPerfil = false
+                            navController.navigate("mapa") {
+                                popUpTo("welcome") { inclusive = true }
+                            }
                         }
-                    },
-                    onCadastrarClick = { navController.navigate("cadastro") }
-                )
-            }
+                    )
+                }
 
-            composable("cadastro") {
-                CadastroScreen(
-                    authRepository = authRepository,
-                    onCadastroSucesso = {
-                        navController.navigate("mapa") {
-                            popUpTo("welcome") { inclusive = true }
-                        }
-                    },
-                    onLoginClick = { navController.navigate("login") }
-                )
-            }
-
-            composable("mapa") {
-                MapaScreen(
-                    ocorrenciaRepository = ocorrenciaRepository,
-                    authRepository = authRepository,
-                    filtro = filtro,
-                    onFiltroChange = { filtro = it },
-                    onNovaOcorrenciaClick = { navController.navigate("reportar") },
-                    onOcorrenciaClick = { id -> navController.navigate("detalhes/$id") },
-                    onLogoutClick = {
-                        authRepository.logout()
-                        navController.navigate("welcome") {
-                            popUpTo("mapa") { inclusive = true }
-                        }
-                    },
-                    onListaClick = { navController.navigate("lista_ocorrencias") },
-                    onProfileClick = { navController.navigate("perfil") },
-                    onConfirmLocation = { lat, lng -> /* handle */ }
-                )
-            }
-
-            composable("reportar") {
-                ReportarScreen(
-                    ocorrenciaRepository = ocorrenciaRepository,
-                    authRepository = authRepository,
-                    onSucesso = { navController.popBackStack() },
-                    onVoltar = { navController.popBackStack() }
-                )
-            }
-
-            composable("lista_ocorrencias") {
-                OcorrenciasListScreen(
-                    ocorrenciaRepository = ocorrenciaRepository,
-                    filtro = filtro,
-                    authRepository = authRepository,
-                    onVoltar = { navController.popBackStack() },
-                    onOcorrenciaClick = { id -> navController.navigate("detalhes/$id") }
-                )
-            }
-
-            composable("perfil") {
-                PerfilScreen(
-                    authRepository = authRepository,
-                    onLogoutClick = {
-                        authRepository.logout()
-                        navController.navigate("welcome") {
-                            popUpTo("mapa") { inclusive = true }
-                        }
-                    },
-                    onAdminClick = { navController.navigate("admin") },
-                    onVoltar = { navController.popBackStack() }
-                )
-            }
-
-            composable(
-                route = "detalhes/{ocorrenciaId}",
-                arguments = listOf(navArgument("ocorrenciaId") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val id = backStackEntry.arguments?.getString("ocorrenciaId") ?: ""
-                DetalhesScreen(
-                    ocorrenciaId = id,
-                    ocorrenciaRepository = ocorrenciaRepository,
-                    authRepository = authRepository,
-                    onVoltar = { navController.popBackStack() }
-                )
-            }
-
-            composable("admin") {
-                var permitido by remember { mutableStateOf<Boolean?>(null) }
-                LaunchedEffect(Unit) { permitido = authRepository.isAdmin() }
-                when (permitido) {
-                    null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                    true -> AdminScreen(
+                composable(
+                    route = "detalhes/{ocorrenciaId}",
+                    arguments = listOf(navArgument("ocorrenciaId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val id = backStackEntry.arguments?.getString("ocorrenciaId") ?: ""
+                    DetalhesScreen(
+                        ocorrenciaId = id,
                         ocorrenciaRepository = ocorrenciaRepository,
                         authRepository = authRepository,
                         onVoltar = { navController.popBackStack() }
                     )
-                    false -> Column(
-                        modifier = Modifier.fillMaxSize().padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text("Acesso negado")
-                        Spacer(Modifier.height(8.dp))
-                        androidx.compose.material3.Button(onClick = { navController.popBackStack() }) { Text("Voltar") }
+                }
+
+                composable("admin") {
+                    var permitido by remember { mutableStateOf<Boolean?>(null) }
+                    LaunchedEffect(Unit) { permitido = authRepository.isAdmin() }
+                    when (permitido) {
+                        null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                        true -> AdminScreen(
+                            ocorrenciaRepository = ocorrenciaRepository,
+                            authRepository = authRepository,
+                            onVoltar = { navController.popBackStack() }
+                        )
+                        false -> Column(
+                            modifier = Modifier.fillMaxSize().padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text("Acesso negado")
+                            Spacer(Modifier.height(8.dp))
+                            androidx.compose.material3.Button(onClick = { navController.popBackStack() }) { Text("Voltar") }
+                        }
                     }
                 }
             }
