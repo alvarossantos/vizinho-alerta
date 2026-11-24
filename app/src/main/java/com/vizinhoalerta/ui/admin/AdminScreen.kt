@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.vizinhoalerta.data.AuthRepository
 import com.vizinhoalerta.data.OcorrenciaRepository
 import com.vizinhoalerta.model.Ocorrencia
+import com.vizinhoalerta.model.rotuloSituacao
 import com.vizinhoalerta.model.Ocorrencia.Companion.SITUACAO_CONFIRMADO
 import com.vizinhoalerta.model.Ocorrencia.Companion.SITUACAO_EM_VERIFICACAO
 import com.vizinhoalerta.model.Ocorrencia.Companion.SITUACAO_REGISTRADO
@@ -138,7 +139,7 @@ fun AdminOcorrenciaRow(
                 FilterChip(
                     selected = true,
                     onClick = {},
-                    label = { Text(ocorrencia.situacao) },
+                    label = { Text(rotuloSituacao(ocorrencia.situacao)) },
                     colors = FilterChipDefaults.filterChipColors(
                         containerColor = when (ocorrencia.situacao) {
                             SITUACAO_REGISTRADO -> Color(0xFFFFEB3B)

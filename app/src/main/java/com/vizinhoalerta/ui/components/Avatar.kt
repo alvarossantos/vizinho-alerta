@@ -58,7 +58,7 @@ fun Avatar(
                     painter = painterResource(R.drawable.ic_usuario_padrao),
                     contentDescription = "Sem foto de perfil",
                     tint = Color.Unspecified,
-                    modifier = Modifier.fillMaxSize(0.62f)
+                    modifier = Modifier.fillMaxSize(0.88f)
                 )
             }
         }
