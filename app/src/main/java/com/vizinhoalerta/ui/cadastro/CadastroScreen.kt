@@ -9,6 +9,8 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.LocationCity
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,9 +18,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vizinhoalerta.data.AuthRepository
+import com.vizinhoalerta.ui.components.PrimaryButton
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,9 +39,13 @@ fun CadastroScreen(
     var bairro by remember { mutableStateOf("") }
     var carregando by remember { mutableStateOf(false) }
     var mensagemErro by remember { mutableStateOf<String?>(null) }
+    var mostrarSenha by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Cadastrar") }) }) { innerPadding ->
+    Scaffold(
+        topBar = { TopAppBar(title = { Text("Cadastrar") }) },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -74,7 +82,16 @@ fun CadastroScreen(
                 onValueChange = { senha = it },
                 label = { Text("Senha") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                visualTransformation = PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { mostrarSenha = !mostrarSenha }) {
+                        Icon(
+                            imageVector = if (mostrarSenha) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                            contentDescription = if (mostrarSenha) "Ocultar senha" else "Mostrar senha",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                visualTransformation = if (mostrarSenha) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
@@ -97,12 +114,13 @@ fun CadastroScreen(
             )
             mensagemErro?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 4.dp)) }
             Spacer(Modifier.height(16.dp))
-            Button(
+            PrimaryButton(
+                texto = "Criar minha conta",
                 onClick = {
                     mensagemErro = null
                     if (nome.isBlank() || email.isBlank() || senha.isBlank() || cidade.isBlank() || bairro.isBlank()) {
                         mensagemErro = "Preencha todos os campos"
-                        return@Button
+                        return@PrimaryButton
                     }
                     carregando = true
                     scope.launch {
@@ -112,12 +130,10 @@ fun CadastroScreen(
                             .onFailure { mensagemErro = it.localizedMessage }
                     }
                 },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                enabled = !carregando
-            ) {
-                if (carregando) CircularProgressIndicator(Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
-                else Text("CADASTRAR", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            }
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !carregando,
+                carregando = carregando
+            )
             Spacer(Modifier.height(8.dp))
             TextButton(onClick = onLoginClick) { Text("Já tem conta? Entrar") }
         }

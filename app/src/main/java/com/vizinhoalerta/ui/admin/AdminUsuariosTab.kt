@@ -9,8 +9,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.vizinhoalerta.data.AuthRepository
 import com.vizinhoalerta.model.Usuario
+import com.vizinhoalerta.ui.components.Avatar
 
 @Composable
 fun AdminUsuariosTab(authRepository: AuthRepository) {
@@ -45,14 +47,25 @@ fun AdminUsuariosTab(authRepository: AuthRepository) {
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text(usuario.nome, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                        Text(usuario.email, style = MaterialTheme.typography.bodyMedium)
-                        Text(
-                            "Função: ${if (usuario.isAdmin) "admin" else "user"}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Avatar(
+                            nome = usuario.nome,
+                            fotoUrl = usuario.fotoUrl?.takeIf { it.isNotBlank() },
+                            tamanho = 40.dp
                         )
+                        Column {
+                            Text(usuario.nome, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                            Text(usuario.email, style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                "Função: ${if (usuario.isAdmin) "admin" else "user"}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
             }

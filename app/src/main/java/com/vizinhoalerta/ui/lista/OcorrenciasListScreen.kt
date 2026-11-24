@@ -14,18 +14,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.vizinhoalerta.data.AuthRepository
 import com.vizinhoalerta.data.OcorrenciaRepository
 import com.vizinhoalerta.model.Ocorrencia
+import com.vizinhoalerta.ui.mapa.FiltroOcorrencias
+import com.vizinhoalerta.ui.components.Avatar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OcorrenciasListScreen(
     ocorrenciaRepository: OcorrenciaRepository,
+    filtro: FiltroOcorrencias,
+    authRepository: AuthRepository,
     onVoltar: () -> Unit,
     onOcorrenciaClick: (String) -> Unit
 ) {
     val ocorrencias by ocorrenciaRepository.observarOcorrencias()
         .collectAsState(initial = emptyList())
+
+    val visiveis = ocorrencias.filter(filtro::match)
+
+    val fotoCache = remember { mutableStateMapOf<String, String?>() }
 
     Scaffold(
         topBar = {
@@ -39,7 +48,7 @@ fun OcorrenciasListScreen(
             )
         }
     ) { innerPadding ->
-        if (ocorrencias.isEmpty()) {
+        if (visiveis.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -55,8 +64,14 @@ fun OcorrenciasListScreen(
                     .padding(innerPadding),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(ocorrencias) { item ->
+                items(visiveis) { item ->
                     val isResolvido = item.status == "resolvido"
+                    LaunchedEffect(item.userId) {
+                        if (!fotoCache.contains(item.userId)) {
+                            val usuario = authRepository.getDadosUsuario(item.userId)
+                            fotoCache[item.userId] = usuario?.fotoUrl?.takeIf { it.isNotBlank() }
+                        }
+                    }
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -71,11 +86,21 @@ fun OcorrenciasListScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = item.tipo,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Avatar(
+                                        nome = item.usuarioNome.ifBlank { "?" },
+                                        fotoUrl = fotoCache[item.userId],
+                                        tamanho = 32.dp
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = item.tipo,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                                 Text(
                                     text = if (isResolvido) "Resolvido" else "Aberto",
                                     color = if (isResolvido) Color(0xFF2E7D32) else Color(0xFFC62828)

@@ -9,7 +9,8 @@ data class Usuario(
     val estado: String = "",
     val cidade: String = "",
     val bairro: String = "",
-    val role: String = "user" // "user" | "admin"
+    val role: String = "user", // "user" | "admin"
+    val fotoUrl: String = ""
 ) {
     val isAdmin: Boolean get() = role.equals("admin", ignoreCase = true)
 }
