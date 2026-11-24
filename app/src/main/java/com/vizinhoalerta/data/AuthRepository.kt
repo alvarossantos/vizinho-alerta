@@ -66,6 +66,7 @@ class AuthRepository(
 
     private var demoUid: String? = null
     private val prefs: SharedPreferences? = context?.getSharedPreferences("perfil_fotos", Context.MODE_PRIVATE)
+    private val onboardingPrefs: SharedPreferences? = context?.getSharedPreferences("onboarding_google", Context.MODE_PRIVATE)
 
     val currentUser: FirebaseUser?
         get() = if (demo) null else auth?.currentUser
@@ -235,7 +236,7 @@ class AuthRepository(
         }
     }
 
-    suspend fun signInWithGoogle(idToken: String): kotlin.Result<FirebaseUser> {
+    suspend fun signInWithGoogle(idToken: String): kotlin.Result<GoogleSignInResult> {
         if (demo) return kotlin.Result.failure(Exception("Login com Google indisponível no modo demo."))
         return try {
             val credential = GoogleAuthProvider.getCredential(idToken, null)
@@ -259,10 +260,48 @@ class AuthRepository(
                 docRef.set(usuario).await()
             }
 
-            kotlin.Result.success(user)
+            kotlin.Result.success(GoogleSignInResult(user.uid, precisaCompletarPerfil(user.uid)))
         } catch (e: Exception) {
             kotlin.Result.failure(Exception(formatAuthException(e)))
         }
+    }
+
+    suspend fun atualizarLocalizacaoPerfil(cidade: String, bairro: String): kotlin.Result<Unit> {
+        val cidadeTrim = cidade.trim()
+        val bairroTrim = bairro.trim()
+        if (cidadeTrim.isBlank() || bairroTrim.isBlank()) {
+            return kotlin.Result.failure(Exception("Informe cidade e bairro."))
+        }
+
+        if (demo) {
+            val uid = demoUid ?: return kotlin.Result.failure(Exception("Usuário não logado"))
+            val index = DemoData.usuarios.indexOfFirst { it.id == uid }
+            if (index < 0) return kotlin.Result.failure(Exception("Usuário não encontrado"))
+            DemoData.usuarios[index] = DemoData.usuarios[index].copy(cidade = cidadeTrim, bairro = bairroTrim)
+            limparOnboardingPendente(uid)
+            return kotlin.Result.success(Unit)
+        }
+
+        return try {
+            val uid = auth?.currentUser?.uid ?: return kotlin.Result.failure(Exception("Usuário não logado"))
+            firestore!!.collection("usuarios").document(uid)
+                .update(mapOf("cidade" to cidadeTrim, "bairro" to bairroTrim))
+                .await()
+            limparOnboardingPendente(uid)
+            kotlin.Result.success(Unit)
+        } catch (e: Exception) {
+            kotlin.Result.failure(Exception(formatAuthException(e)))
+        }
+    }
+
+    suspend fun precisaCompletarPerfil(uid: String): Boolean = perfilIncompleto(getDadosUsuario(uid))
+
+    fun marcarOnboardingPendente(uid: String) {
+        onboardingPrefs?.edit()?.putBoolean("pendente:$uid", true)?.apply()
+    }
+
+    fun limparOnboardingPendente(uid: String) {
+        onboardingPrefs?.edit()?.remove("pendente:$uid")?.apply()
     }
 
     suspend fun atualizarPerfil(
@@ -441,6 +480,7 @@ class AuthRepository(
     }
 
     fun logout() {
+        currentUid?.let { limparOnboardingPendente(it) }
         if (demo) {
             demoUid = null
             DemoData.reset()
