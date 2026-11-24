@@ -20,6 +20,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vizinhoalerta.data.AuthRepository
+import com.vizinhoalerta.data.GoogleSignInHelper
+import com.vizinhoalerta.ui.components.GoogleSignInButton
 import com.vizinhoalerta.ui.components.PrimaryButton
 import kotlinx.coroutines.launch
 
@@ -29,7 +31,9 @@ fun LoginScreen(
     authRepository: AuthRepository,
     onLoginSucesso: () -> Unit,
     onCadastrarClick: () -> Unit,
-    modoDemo: Boolean = false
+    modoDemo: Boolean = false,
+    googleSignIn: GoogleSignInHelper? = null,
+    onGoogleSucesso: (Boolean) -> Unit = {}
 ) {
     var email by remember { mutableStateOf("") }
     var senha by remember { mutableStateOf("") }
@@ -110,6 +114,14 @@ fun LoginScreen(
                 Spacer(Modifier.height(8.dp))
                 Text("Demo: admin@demo.com / Demo@123", fontSize = 12.sp)
             }
+            GoogleSignInButton(
+                googleSignIn = googleSignIn,
+                authRepository = authRepository,
+                modoDemo = modoDemo,
+                onSucesso = onGoogleSucesso,
+                onMensagem = { mensagemErro = it },
+                modifier = Modifier.fillMaxWidth()
+            )
             Spacer(Modifier.height(8.dp))
             TextButton(onClick = onCadastrarClick) { Text("Não tem conta? Cadastrar") }
         }
