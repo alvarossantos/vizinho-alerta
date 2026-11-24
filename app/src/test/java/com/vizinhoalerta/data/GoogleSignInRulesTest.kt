@@ -1,6 +1,8 @@
 package com.vizinhoalerta.data
 
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.vizinhoalerta.model.Usuario
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -38,5 +40,22 @@ class GoogleSignInRulesTest {
             mensagemConflitoConta(null, "account-exists-with-different-credential")
         )
         assertNull(mensagemConflitoConta("ERROR_EMAIL_ALREADY_IN_USE", null))
+    }
+
+    @Test fun `gerar username para quando consulta falha`() = runBlocking {
+        val resultado = gerarUsernameUnico("@morador") { null }
+        assertTrue(resultado.isFailure)
+    }
+
+    @Test fun `gerar username usa primeiro disponivel`() = runBlocking {
+        val resultado = gerarUsernameUnico("@morador") { true }
+        assertEquals("@morador", resultado.getOrNull())
+    }
+
+    @Test fun `formatAuthException prioriza conflito de conta`() {
+        assertEquals(
+            "Este e-mail já possui conta com senha. Entre com sua senha para continuar.",
+            formatAuthException(FirebaseAuthUserCollisionException("ERROR_ACCOUNT_EXISTS_WITH_DIFFERENT_CREDENTIAL", "conflito"))
+        )
     }
 }
