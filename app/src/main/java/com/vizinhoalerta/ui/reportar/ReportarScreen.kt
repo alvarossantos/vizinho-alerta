@@ -8,6 +8,7 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.compose.foundation.Image
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -71,6 +72,7 @@ fun ReportarScreen(
     var fotoFile by remember { mutableStateOf<File?>(null) }
     var mostrandoCamera by remember { mutableStateOf(false) }
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
+    var movimentoDetectado by remember { mutableStateOf(false) }
 
     var audioFile by remember { mutableStateOf<File?>(null) }
     var gravandoAudio by remember { mutableStateOf(false) }
@@ -229,6 +231,7 @@ fun ReportarScreen(
                             },
                             modifier = Modifier.fillMaxSize()
                         )
+                        AvisoMovimento(movimentoDetectado)
                         FloatingActionButton(onClick = {
                             val cap = imageCapture
                             if (cap != null) {
@@ -384,4 +387,21 @@ fun ReportarScreen(
             }
         }
     }
+}
+
+@Composable
+internal fun BoxScope.AvisoMovimento(
+    movimentoDetectado: Boolean,
+    modifier: Modifier = Modifier
+) {
+    if (!movimentoDetectado) return
+    Text(
+        text = "Segure o celular firme",
+        color = Color.White,
+        modifier = modifier
+            .align(Alignment.TopCenter)
+            .padding(8.dp)
+            .background(Color.Black.copy(alpha = 0.6f))
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    )
 }
