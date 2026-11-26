@@ -40,6 +40,7 @@ import com.vizinhoalerta.data.OcorrenciaRepository
 import com.vizinhoalerta.model.Ocorrencia
 import com.vizinhoalerta.service.AudioService
 import com.vizinhoalerta.service.CameraService
+import com.vizinhoalerta.service.GiroscopioService
 import com.vizinhoalerta.service.LocalizacaoService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -82,6 +83,22 @@ fun ReportarScreen(
     var obtendoGps by remember { mutableStateOf(false) }
     var enviando by remember { mutableStateOf(false) }
     var mensagemErro by remember { mutableStateOf<String?>(null) }
+
+    DisposableEffect(mostrandoCamera, lifecycleOwner) {
+        if (!mostrandoCamera) {
+            onDispose { }
+        } else {
+            val dispose = GiroscopioService.observar(
+                context = context,
+                lifecycle = lifecycleOwner.lifecycle,
+                onMovimento = { movimentoDetectado = it }
+            )
+            onDispose {
+                dispose()
+                movimentoDetectado = false
+            }
+        }
+    }
 
     // Constantes de validação
     val MAX_FOTO_SIZE = 5 * 1024 * 1024 // 5MB
