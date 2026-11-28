@@ -46,6 +46,8 @@ import com.vizinhoalerta.ui.perfil.PerfilScreen
 import com.vizinhoalerta.ui.reportar.ReportarScreen
 import com.vizinhoalerta.ui.welcome.WelcomeScreen
 import com.vizinhoalerta.ui.components.BottomNav
+import com.vizinhoalerta.ui.theme.PreferenciaTema
+import com.vizinhoalerta.ui.theme.RepositorioTema
 import com.vizinhoalerta.ui.theme.VizinhoAlertaTheme
 import kotlinx.coroutines.launch
 
@@ -62,13 +64,16 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { _ -> }
 
+    private var preferenciaTema = mutableStateOf(PreferenciaTema.SISTEMA)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        preferenciaTema.value = RepositorioTema.ler(this)
         solicitarPermissoesSeNecessario()
 
         setContent {
-            VizinhoAlertaTheme {
+            VizinhoAlertaTheme(preferencia = preferenciaTema.value) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
@@ -79,7 +84,17 @@ class MainActivity : ComponentActivity() {
             val configReal = !getString(R.string.google_api_key).contains("DUMMY", ignoreCase = true)
             val modo = BackendSelector.detectar(configReal = configReal)
             setContent {
-                VizinhoAlertaTheme { VizinhoAlertaApp(modo = modo, context = this@MainActivity) }
+                VizinhoAlertaTheme(preferencia = preferenciaTema.value) {
+                    VizinhoAlertaApp(
+                        modo = modo,
+                        context = this@MainActivity,
+                        preferenciaTema = preferenciaTema.value,
+                        onPreferenciaTemaChange = {
+                            RepositorioTema.salvar(this@MainActivity, it)
+                            preferenciaTema.value = it
+                        }
+                    )
+                }
             }
         }
     }
@@ -95,7 +110,12 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun VizinhoAlertaApp(modo: BackendSelector.Mode, context: Context) {
+fun VizinhoAlertaApp(
+    modo: BackendSelector.Mode,
+    context: Context,
+    preferenciaTema: PreferenciaTema,
+    onPreferenciaTemaChange: (PreferenciaTema) -> Unit
+) {
     val demo = modo == BackendSelector.Mode.DEMO
     val authRepository = remember(modo) { AuthRepository(demo = demo, context = context) }
     val ocorrenciaRepository = remember(modo) { OcorrenciaRepository(demo = demo, authRepository = authRepository) }
@@ -263,7 +283,9 @@ fun VizinhoAlertaApp(modo: BackendSelector.Mode, context: Context) {
                             navController.navigate("mapa") {
                                 popUpTo("welcome") { inclusive = true }
                             }
-                        }
+                        },
+                        preferenciaTema = preferenciaTema,
+                        onPreferenciaTemaChange = onPreferenciaTemaChange
                     )
                 }
 
