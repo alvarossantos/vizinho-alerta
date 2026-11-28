@@ -26,7 +26,7 @@ Hoje o tema segue somente o Android. Usuário quer escolher **Seguir o sistema**
 - `MainActivity` é `ComponentActivity` com `activity-compose:1.9.0`, `core-ktx:1.13.1`.
 - `VizinhoAlertaTheme` hoje lê `LocalConfiguration.current.uiMode` diretamente.
 - SharedPreferences já é usado em `AuthRepository`; segue o mesmo padrão, sem nova lib.
-- Único recurso `values-night` é `themes.xml` (cor da barra de status); não há outros qualificadores night em `res/`.
+- Recursos `values-night`: `colors.xml` (`md_theme_surface` = `#1C1B1F`) e `themes.xml` (barra de status). Nenhum código Compose lê `colorResource`/`R.color`; a barra de status é o único consumidor e será sobrescrita explicitamente. Sem `LocalConfiguration`, esses recursos continuam seguindo o Android — aceitável porque o único efeito visível é a barra, controlada à parte.
 
 ## Abordagens
 
@@ -41,7 +41,7 @@ Hoje o tema segue somente o Android. Usuário quer escolher **Seguir o sistema**
 2. Repositório mínimo com `ler()` / `salvar()` em SharedPreferences (`tema_prefs`, chave `preferencia_tema`).
 3. Função pura `temaEfetivo(preferencia, modoNoturnoSistema): Boolean` — testável sem Android.
 4. `VizinhoAlertaTheme` recebe a preferência, resolve o booleano e escolhe `LightColorScheme`/`DarkColorScheme`. **Não** sobrescrever `LocalConfiguration` de início.
-5. Barra de status: `SideEffect`/`DisposableEffect` no tema aplica cor e `isAppearanceLightStatusBars` com `WindowCompat` a partir do mesmo booleano. Isso cobre explicitamente o único recurso `values-night` relevante; se outro recurso night aparecer, tratar caso a caso.
+5. Barra de status: `SideEffect` no tema aplica cor e `isAppearanceLightStatusBars` com `WindowCompat` a partir do mesmo booleano. Isso sobrescreve explicitamente o `values-night/themes.xml`; `values-night/colors.xml` não é lido pelo Compose. Se outro recurso night passar a ser usado na interface, tratar caso a caso.
 6. `PerfilScreen` recebe a preferência e um callback; `AlertDialog` com as três opções, sem sair da tela.
 7. Preferência fornecida desde `MainActivity` e lembrada com `remember`/estado para recompor ao salvar.
 
