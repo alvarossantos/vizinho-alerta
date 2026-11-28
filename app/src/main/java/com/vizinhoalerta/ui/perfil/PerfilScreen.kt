@@ -21,6 +21,8 @@ import com.vizinhoalerta.data.AuthRepository
 import com.vizinhoalerta.model.Usuario
 import com.vizinhoalerta.ui.components.Avatar
 import com.vizinhoalerta.ui.components.PrimaryButton
+import com.vizinhoalerta.ui.theme.PreferenciaTema
+import com.vizinhoalerta.ui.theme.SeletorTema
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,7 +33,9 @@ fun PerfilScreen(
     onAdminClick: () -> Unit,
     onVoltar: () -> Unit,
     completarPerfil: Boolean = false,
-    onPerfilConcluido: () -> Unit = {}
+    onPerfilConcluido: () -> Unit = {},
+    preferenciaTema: PreferenciaTema = PreferenciaTema.SISTEMA,
+    onPreferenciaTemaChange: (PreferenciaTema) -> Unit = {}
 ) {
     var usuario by remember { mutableStateOf<Usuario?>(null) }
     var ehAdmin by remember { mutableStateOf(false) }
@@ -242,6 +246,13 @@ fun PerfilScreen(
 
                 erro?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp)) }
                 mensagem?.let { Text(it, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp)) }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                SeletorTema(
+                    preferencia = preferenciaTema,
+                    onSelecionar = onPreferenciaTemaChange,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 if (ehAdmin && !completarPerfil) {
                     Spacer(modifier = Modifier.height(16.dp))
