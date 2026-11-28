@@ -6,6 +6,7 @@ local.properties
 *.apk
 *.aab
 app/build/
+build/
 captures/
 .externalNativeBuild/
 .cxx/
