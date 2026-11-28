@@ -25,7 +25,7 @@ class TemaAplicadoTest {
     }
 
     @Test
-    fun preferencia_claro_usa_fundo_claro_mesmo_com_sistema_escuro() {
+    fun preferencia_claro_usa_fundo_claro() {
         var fundo: Color? = null
         composeTestRule.setContent {
             VizinhoAlertaTheme(PreferenciaTema.CLARO) {
