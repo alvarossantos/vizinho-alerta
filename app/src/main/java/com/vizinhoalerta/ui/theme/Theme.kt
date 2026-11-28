@@ -1,14 +1,18 @@
 package com.vizinhoalerta.ui.theme
 
+import android.app.Activity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 
@@ -57,11 +61,23 @@ val Shapes = Shapes(
 )
 
 @Composable
-fun VizinhoAlertaTheme(content: @Composable () -> Unit) {
+fun VizinhoAlertaTheme(
+    preferencia: PreferenciaTema = PreferenciaTema.SISTEMA,
+    content: @Composable () -> Unit
+) {
     val uiMode = LocalConfiguration.current.uiMode
     val isNightMode = (uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+    val escuro = temaEfetivo(preferencia, isNightMode)
+    val context = LocalContext.current
+
+    SideEffect {
+        val window = (context as? Activity)?.window ?: return@SideEffect
+        window.statusBarColor = if (escuro) 0xFF1C1B1F.toInt() else 0xFFFFFBE8.toInt()
+        WindowCompat.getInsetsController(window, window.decorView)?.isAppearanceLightStatusBars = !escuro
+    }
+
     MaterialTheme(
-        colorScheme = if (isNightMode) DarkColorScheme else LightColorScheme,
+        colorScheme = if (escuro) DarkColorScheme else LightColorScheme,
         shapes = Shapes,
         typography = Typography(),
         content = content
