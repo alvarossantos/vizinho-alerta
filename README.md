@@ -54,6 +54,9 @@ app/src/main/java/com/vizinhoalerta/
 - Validação de senha: 8+ chars, maiúscula, número, caractere especial
 - Perfil do usuário com cidade, bairro e foto de perfil (galeria ou câmera)
 
+### Aparência
+Em Perfil → Tema, o usuário escolhe entre Seguir o sistema, Claro e Escuro. O padrão é Seguir o sistema. A preferência fica salva no dispositivo e vale para todas as telas, inclusive a barra de status. A troca acontece na hora e mantém o usuário em Perfil.
+
 ### Mapa e Localização
 - **Mapa com localização do usuário em azul** (Blue Dot)
 - Botão "Local Atual" → recente a câmera para a posição do usuário
@@ -73,14 +76,15 @@ Welcome → Login → Mapa → Reportar/Detalhes/Lista/Perfil/Admin
 
 ## Interface
 
-Capturas do app rodando no emulador Android 14 (1080×2280).
+Capturas do app no emulador Android 14 e no dispositivo Android 16, ajustadas para 1080×2280.
 
 ### Acesso
 
 | | |
 |---|---|
 | <img src="docs/screenshots/08-welcome.png?v=2" alt="Welcome" width="240"> **Welcome** | <img src="docs/screenshots/11-login-google.png" alt="Login com botão Continuar com Google" width="240"> **Login** |
-| <img src="docs/screenshots/12-cadastro-google.png" alt="Cadastro com botão Continuar com Google" width="240"> **Cadastro** | <img src="docs/screenshots/01-perfil.png?v=2" alt="Perfil" width="240"> **Perfil** |
+| <img src="docs/screenshots/12-cadastro-google.png" alt="Cadastro com botão Continuar com Google" width="240"> **Cadastro** | <img src="docs/screenshots/01-perfil.png?v=3" alt="Perfil com botão Tema" width="240"> **Perfil** |
+| <img src="docs/screenshots/13-perfil-tema.png" alt="Seletor de tema com Seguir o sistema, Claro e Escuro" width="240"> **Seletor de tema** | |
 
 ### Uso diário
 
@@ -232,6 +236,7 @@ Testa:
 - `OcorrenciaTest.kt` - validações de modelo e constantes
 - `UsuarioTest.kt` - verificação de isAdmin
 - `LocalizacaoServiceTest.kt` - validação de coordenadas
+- `PreferenciaTemaTest.kt` - resolução do tema efetivo
 
 ### Testes de UI (Instrumented)
 ```bash
@@ -246,12 +251,13 @@ Neste AGP, o lifecycle `connectedAndroidTest` não aceita `--tests`; use a propr
 Testa:
 - `GoogleButtonDemoTest.kt` - aviso do botão Google no demo (Login e Cadastro)
 - `ValidationTest.kt` - validação de senha
+- `RepositorioTemaTest.kt`, `TemaAplicadoTest.kt`, `SeletorTemaTest.kt` e `BarraStatusTemaTest.kt` - persistência, cores, seletor e barra de status
 
 > [!WARNING]
 > O `LoginFlowTest.kt` pré-existente está desatualizado em relação ao fluxo atual de login/onboarding e está fora de escopo desta entrega. Não o use como referência do comportamento do Google.
 
 > [!NOTE]
-> Não havia AVD/dispositivo disponível neste ambiente: os testes instrumentados **não foram executados aqui**. O checklist manual acima cobre o que depende de dispositivo e Firebase real; nenhum sucesso de execução é afirmado.
+> Os testes instrumentados foram executados em SM-A346M (Android 16). O checklist manual acima depende de Firebase real e não foi executado neste ambiente.
 
 ## Stack
 Kotlin, Jetpack Compose, MapLibre (OpenStreetMap), CameraX, FusedLocation, Firebase (Auth, Firestore, Storage, Realtime DB), Google Sign-In
