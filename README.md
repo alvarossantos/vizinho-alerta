@@ -9,6 +9,7 @@ Moradores registram situações suspeitas ou problemas urbanos (rua escura, vand
 - **Câmera (CameraX):** foto da evidência
 - **Microfone:** relato de voz de 10-15s
 - **GPS (FusedLocation):**latitude/longitude automáticas
+- **Giroscópio (`TYPE_GYROSCOPE`):** na prévia da câmera de **Nova Ocorrência**, exibe “Segure o celular firme” ao detectar rotação. O aviso desaparece após cerca de 500 ms de estabilidade, e a captura permanece disponível.
 - **Internet (Firebase):** mapa/feed compartilhado via Auth, Firestore e Storage
 
 ## Tecnologias
